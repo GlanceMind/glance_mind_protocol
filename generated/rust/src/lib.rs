@@ -35,7 +35,19 @@ impl<'de> Deserialize<'de> for Platform {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Platform::from_json_str(&s).ok_or_else(|| serde::de::Error::unknown_variant(&s, &["reddit", "tiktok", "facebook", "instagram", "twitter", "youtube"]))
+        Platform::from_json_str(&s).ok_or_else(|| {
+            serde::de::Error::unknown_variant(
+                &s,
+                &[
+                    "reddit",
+                    "tiktok",
+                    "facebook",
+                    "instagram",
+                    "twitter",
+                    "youtube",
+                ],
+            )
+        })
     }
 }
 
@@ -52,7 +64,7 @@ impl Platform {
             Platform::Youtube => "youtube",
         }
     }
-    
+
     /// Parse from string (case-insensitive)
     pub fn from_json_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
@@ -66,7 +78,7 @@ impl Platform {
             _ => None,
         }
     }
-    
+
     /// Convert from database platform_id
     pub fn from_platform_id(id: i32) -> Self {
         match id {
@@ -96,7 +108,17 @@ impl<'de> Deserialize<'de> for DataType {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        DataType::from_json_str(&s).ok_or_else(|| serde::de::Error::unknown_variant(&s, &["video_content", "video_metadata", "video_comments", "keyword_search"]))
+        DataType::from_json_str(&s).ok_or_else(|| {
+            serde::de::Error::unknown_variant(
+                &s,
+                &[
+                    "video_content",
+                    "video_metadata",
+                    "video_comments",
+                    "keyword_search",
+                ],
+            )
+        })
     }
 }
 
@@ -110,7 +132,7 @@ impl DataType {
             DataType::KeywordSearch => "keyword_search",
         }
     }
-    
+
     pub fn from_json_str(s: &str) -> Option<Self> {
         match s {
             "video_content" => Some(DataType::VideoContent),
@@ -138,7 +160,12 @@ impl<'de> Deserialize<'de> for TimeRange {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        TimeRange::from_json_str(&s).ok_or_else(|| serde::de::Error::unknown_variant(&s, &["all_time", "last_24h", "last_7d", "last_30d", "last_180d"]))
+        TimeRange::from_json_str(&s).ok_or_else(|| {
+            serde::de::Error::unknown_variant(
+                &s,
+                &["all_time", "last_24h", "last_7d", "last_30d", "last_180d"],
+            )
+        })
     }
 }
 
@@ -153,7 +180,7 @@ impl TimeRange {
             TimeRange::Last180d => "last_180d",
         }
     }
-    
+
     pub fn from_json_str(s: &str) -> Option<Self> {
         match s {
             "all_time" => Some(TimeRange::AllTime),
@@ -182,7 +209,9 @@ impl<'de> Deserialize<'de> for CommentStatus {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        CommentStatus::from_json_str(&s).ok_or_else(|| serde::de::Error::unknown_variant(&s, &["pending", "processing", "completed", "failed"]))
+        CommentStatus::from_json_str(&s).ok_or_else(|| {
+            serde::de::Error::unknown_variant(&s, &["pending", "processing", "completed", "failed"])
+        })
     }
 }
 
@@ -196,7 +225,7 @@ impl CommentStatus {
             CommentStatus::Failed => "failed",
         }
     }
-    
+
     pub fn from_json_str(s: &str) -> Option<Self> {
         match s {
             "pending" => Some(CommentStatus::Pending),
@@ -223,7 +252,7 @@ impl CommentStatus {
             _ => CommentStatus::Unspecified,
         }
     }
-    
+
     /// Convert to i16 status code (database format)
     pub fn to_i16(&self) -> i16 {
         match self {
@@ -257,9 +286,8 @@ pub mod serde_helpers {
                 use super::*;
 
                 pub fn serialize<S: Serializer>(value: &i32, s: S) -> Result<S::Ok, S::Error> {
-                    let v: $enum_ty =
-                        <$enum_ty as ::core::convert::TryFrom<i32>>::try_from(*value)
-                            .unwrap_or_default();
+                    let v: $enum_ty = <$enum_ty as ::core::convert::TryFrom<i32>>::try_from(*value)
+                        .unwrap_or_default();
                     s.serialize_str(v.to_json_str())
                 }
 
@@ -322,6 +350,179 @@ impl glance_mind::DeviceCommentsResponse {
     }
 }
 
+// =====================================================================
+// AIPub helper constructors / accessors.
+// Mirror methods that lived on the deleted lib_inline.rs / scheduler
+// protocol_gen so consumers don't need to rewrite every call site.
+// =====================================================================
+
+/// Current AIPub protocol version. Bumped to 2 when the v2 unified
+/// schema (UnifiedPublishContent / UnifiedAiPubInput) becomes the
+/// default writer in scheduler.
+pub const AIPUB_PROTOCOL_VERSION: i32 = 1;
+
+impl glance_mind::AiTaskInput {
+    /// Create input for content generation task.
+    pub fn for_content_gen(
+        video_prompt: Option<String>,
+        content_prompt: Option<String>,
+    ) -> Self {
+        Self {
+            version: AIPUB_PROTOCOL_VERSION,
+            video_prompt,
+            content_prompt,
+            ..Default::default()
+        }
+    }
+
+    /// Create input for video generation task.
+    pub fn for_video_gen(model: String, prompt: String, aipub_task_id: i32) -> Self {
+        Self {
+            version: AIPUB_PROTOCOL_VERSION,
+            model: Some(model),
+            prompt: Some(prompt),
+            aipub_task_id: Some(aipub_task_id),
+            ..Default::default()
+        }
+    }
+
+    /// Create input for video generation with start/end frame images
+    /// (for FL / Vidu image-to-video models).
+    pub fn for_video_gen_with_images(
+        model: String,
+        prompt: String,
+        aipub_task_id: i32,
+        start_image_url: Option<String>,
+        end_image_url: Option<String>,
+    ) -> Self {
+        Self {
+            version: AIPUB_PROTOCOL_VERSION,
+            model: Some(model),
+            prompt: Some(prompt),
+            aipub_task_id: Some(aipub_task_id),
+            start_image_url,
+            end_image_url,
+            ..Default::default()
+        }
+    }
+}
+
+impl glance_mind::AiTaskResult {
+    /// Create result for content generation task (count + pending video count).
+    pub fn for_content_gen(content_count: i32, video_pending_count: i32) -> Self {
+        Self {
+            version: AIPUB_PROTOCOL_VERSION,
+            content_count: Some(content_count),
+            video_pending_count: Some(video_pending_count),
+            generated_at: Some(chrono::Utc::now().to_rfc3339()),
+            ..Default::default()
+        }
+    }
+
+    /// Create result for content generation with content variations populated.
+    pub fn for_content_gen_with_variations(
+        content_variations: Vec<glance_mind::ContentVariation>,
+        video_pending_count: i32,
+    ) -> Self {
+        let content_count = content_variations.len() as i32;
+        Self {
+            version: AIPUB_PROTOCOL_VERSION,
+            content_count: Some(content_count),
+            video_pending_count: Some(video_pending_count),
+            content_variations,
+            generated_at: Some(chrono::Utc::now().to_rfc3339()),
+            ..Default::default()
+        }
+    }
+
+    /// Create result for video generation task (just url).
+    pub fn for_video_gen(video_url: String) -> Self {
+        Self {
+            version: AIPUB_PROTOCOL_VERSION,
+            video_url: Some(video_url),
+            generated_at: Some(chrono::Utc::now().to_rfc3339()),
+            ..Default::default()
+        }
+    }
+
+    /// Create error result. Renamed from `error()` (which collided with the
+    /// generated `error` field on AiTaskResult message).
+    pub fn for_error(error_msg: String) -> Self {
+        Self {
+            version: AIPUB_PROTOCOL_VERSION,
+            error: Some(error_msg),
+            generated_at: Some(chrono::Utc::now().to_rfc3339()),
+            ..Default::default()
+        }
+    }
+}
+
+impl glance_mind::AiPubInput {
+    pub fn has_reference_video(&self) -> bool {
+        self.reference_video.is_some()
+    }
+
+    pub fn with_reference_video(
+        mut self,
+        reference_video: glance_mind::ReferenceVideoConfig,
+    ) -> Self {
+        self.reference_video = Some(reference_video);
+        self
+    }
+
+    /// Get the effective video prompt (falls back to legacy `prompt` if empty).
+    pub fn get_video_prompt(&self) -> &str {
+        if !self.video_prompt.is_empty() {
+            &self.video_prompt
+        } else {
+            &self.prompt
+        }
+    }
+
+    /// Get the effective content prompt (falls back to legacy `prompt` if empty).
+    pub fn get_content_prompt(&self) -> &str {
+        if !self.content_prompt.is_empty() {
+            &self.content_prompt
+        } else {
+            &self.prompt
+        }
+    }
+
+    /// Per-account image override; falls back to default_images when absent.
+    /// Note: prost generates account_images as HashMap (proto map), not Option<HashMap>.
+    pub fn get_images_for_account(
+        &self,
+        account_id: &str,
+    ) -> Option<&glance_mind::AiPubImageConfig> {
+        if let Some(config) = self.account_images.get(account_id) {
+            return Some(config);
+        }
+        self.default_images.as_ref()
+    }
+}
+
+impl glance_mind::ReferenceVideoConfig {
+    pub fn new(video_url: impl Into<String>, model_name: impl Into<String>) -> Self {
+        Self {
+            video_url: video_url.into(),
+            model_name: model_name.into(),
+            target_duration: None,
+        }
+    }
+}
+
+impl glance_mind::PatrolCollectionType {
+    /// Lowercase wire-format string ("profile" / "notification").
+    /// DB column gm_patrol_reports.report_type stores this string form.
+    pub fn to_json_str(&self) -> &'static str {
+        match self {
+            glance_mind::PatrolCollectionType::Unspecified => "unspecified",
+            glance_mind::PatrolCollectionType::Profile => "profile",
+            glance_mind::PatrolCollectionType::Notification => "notification",
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -331,7 +532,7 @@ mod tests {
         let platform = Platform::Tiktok;
         let json = serde_json::to_string(&platform).unwrap();
         assert_eq!(json, r#""tiktok""#);
-        
+
         let parsed: Platform = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, Platform::Tiktok);
     }
@@ -361,10 +562,10 @@ mod tests {
                 search_options: None,
             }),
         };
-        
+
         let json = serde_json::to_string_pretty(&task).unwrap();
         println!("{}", json);
-        
+
         let parsed: CrawlerTask = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed.meta.unwrap().task_id, 123);
     }
@@ -444,8 +645,16 @@ mod tests {
         let must_have: &[(&str, &str, &[&str])] = &[
             ("flux-kontext-pro", "flux", &["text_to_image", "image_edit"]),
             ("flux-kontext-max", "flux", &["text_to_image", "image_edit"]),
-            ("seedream-4-0-250828", "seedream", &["text_to_image", "image_edit"]),
-            ("seedream-4-5-251128", "seedream", &["text_to_image", "image_edit"]),
+            (
+                "seedream-4-0-250828",
+                "seedream",
+                &["text_to_image", "image_edit"],
+            ),
+            (
+                "seedream-4-5-251128",
+                "seedream",
+                &["text_to_image", "image_edit"],
+            ),
         ];
         for (model, provider, modes) in must_have {
             let entry = f.routes.iter().find(|r| r.model_key == *model);
