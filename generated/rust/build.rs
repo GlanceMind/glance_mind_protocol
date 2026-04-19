@@ -110,13 +110,23 @@ fn main() -> Result<()> {
     }
 
     // Per-field #[serde(default)] for fields on oneof-containing messages
-    // (where struct-level default is unsafe). Only fields that production
-    // JSON may omit.
+    // (where struct-level default is unsafe). All non-optional AiPubInput
+    // fields need this since upstream JSON often omits empty ones.
     let lenient_fields = [
+        // AiPubInput: non-optional required-at-proto-level fields.
         ".glance_mind.AiPubInput.video_prompt",
         ".glance_mind.AiPubInput.content_prompt",
         ".glance_mind.AiPubInput.prompt",
         ".glance_mind.AiPubInput.account_images",
+        ".glance_mind.AiPubInput.reference_images",
+        // UnifiedAiPubInput: same treatment for v2 input (also has oneof).
+        ".glance_mind.UnifiedAiPubInput.version",
+        ".glance_mind.UnifiedAiPubInput.text_generations",
+        ".glance_mind.UnifiedAiPubInput.image_generations",
+        ".glance_mind.UnifiedAiPubInput.video_generations",
+        ".glance_mind.UnifiedAiPubInput.initial_media",
+        ".glance_mind.UnifiedAiPubInput.account_media",
+        ".glance_mind.UnifiedAiPubInput.generation_extras",
     ];
     for field in lenient_fields {
         config.field_attribute(field, "#[serde(default)]");

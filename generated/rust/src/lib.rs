@@ -363,10 +363,7 @@ pub const AIPUB_PROTOCOL_VERSION: i32 = 1;
 
 impl glance_mind::AiTaskInput {
     /// Create input for content generation task.
-    pub fn for_content_gen(
-        video_prompt: Option<String>,
-        content_prompt: Option<String>,
-    ) -> Self {
+    pub fn for_content_gen(video_prompt: Option<String>, content_prompt: Option<String>) -> Self {
         Self {
             version: AIPUB_PROTOCOL_VERSION,
             video_prompt,
