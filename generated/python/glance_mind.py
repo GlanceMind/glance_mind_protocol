@@ -572,12 +572,27 @@ class PlanType:
     """
     Plan type - gm_aipub_plans.plan_type
     Determines the processing strategy for a publish plan.
-    DB CHECK: ('batch_text', 'single_video', 'account_grooming')
+
+    DB CHECK: ('batch_text', 'single_video', 'account_grooming',
+               'reddit_text', 'reddit_image', 'reddit_link',
+               'direct_publish')
+    Source of truth: aipub.proto PlanType (Phase 4 Round 3 Task 4).
     """
     BATCH_TEXT = "batch_text"
     SINGLE_VIDEO = "single_video"
     ACCOUNT_GROOMING = "account_grooming"
-    ALL = [BATCH_TEXT, SINGLE_VIDEO, ACCOUNT_GROOMING]
+    REDDIT_TEXT = "reddit_text"
+    REDDIT_IMAGE = "reddit_image"
+    REDDIT_LINK = "reddit_link"
+    ALL = [
+        BATCH_TEXT,
+        SINGLE_VIDEO,
+        ACCOUNT_GROOMING,
+        REDDIT_TEXT,
+        REDDIT_IMAGE,
+        REDDIT_LINK,
+    ]
+    REDDIT_PLAN_TYPES = (REDDIT_TEXT, REDDIT_IMAGE, REDDIT_LINK)
 
 
 class ContentType:
@@ -1329,6 +1344,69 @@ class AccountGroomingTaskContent:
 
 
 # ============================================================
+# Reddit Publish Content (Phase 4 Round 3 Task 4)
+# Source of truth: aipub.proto RedditPublishContent (message at line 567).
+# Used by plan_type = reddit_text / reddit_image / reddit_link.
+# ============================================================
+
+@dataclass
+class RedditPublishContent:
+    """Reddit publish content - stored in gm_aipub_tasks.content for the
+    reddit_text / reddit_image / reddit_link plan types.
+
+    Field-for-field mirror of proto RedditPublishContent. Optional
+    fields elide from :meth:`to_dict` output when None so the JSON on
+    the wire stays proto-compatible.
+    """
+
+    subreddit: str = ""
+    reddit_post_type: str = ""  # "TEXT", "IMAGE", "LINK"
+    title: str = ""
+    body: Optional[str] = None
+    link_url: Optional[str] = None
+    image_urls: List[str] = field(default_factory=list)
+    flair_text: Optional[str] = None
+    is_nsfw: bool = False
+    is_spoiler: bool = False
+    use_markdown: bool = False
+    is_brand_affiliate: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "subreddit": self.subreddit,
+            "reddit_post_type": self.reddit_post_type,
+            "title": self.title,
+            "is_nsfw": self.is_nsfw,
+            "is_spoiler": self.is_spoiler,
+            "use_markdown": self.use_markdown,
+            "is_brand_affiliate": self.is_brand_affiliate,
+        }
+        if self.image_urls:
+            d["image_urls"] = list(self.image_urls)
+        for k in ("body", "link_url", "flair_text"):
+            v = getattr(self, k)
+            if v is not None:
+                d[k] = v
+        return d
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "RedditPublishContent":
+        return cls(
+            subreddit=data.get("subreddit", ""),
+            reddit_post_type=data.get("reddit_post_type", ""),
+            title=data.get("title", ""),
+            body=data.get("body"),
+            link_url=data.get("link_url"),
+            image_urls=list(data.get("image_urls") or []),
+            flair_text=data.get("flair_text"),
+            is_nsfw=bool(data.get("is_nsfw", False)),
+            is_spoiler=bool(data.get("is_spoiler", False)),
+            use_markdown=bool(data.get("use_markdown", False)),
+            is_brand_affiliate=bool(data.get("is_brand_affiliate", False)),
+        )
+
+
+# ============================================================
 # AIPub Executor Publish Task Protocol (API -> Executor)
 # Endpoint: GET /api/v1/public/aipub/publish_tasks
 #
@@ -1383,28 +1461,54 @@ class ExecutorPublishTask:
     
     def is_account_grooming(self) -> bool:
         return self.plan_type == PlanType.ACCOUNT_GROOMING
-    
+
     def is_video_publish(self) -> bool:
         return self.content_type == ContentTypeEnum.VIDEO
-    
+
+    def is_reddit(self) -> bool:
+        """Phase 4 Round 3 Task 4 — true for any reddit plan type."""
+        return self.plan_type in PlanType.REDDIT_PLAN_TYPES
+
     def get_grooming_content(self) -> Optional[AccountGroomingTaskContent]:
         """Parse content as AccountGroomingTaskContent"""
         if not self.is_account_grooming():
             return None
         return AccountGroomingTaskContent.from_dict(self.content)
-    
+
     def get_publish_content(self) -> Optional[AiPubTaskContent]:
-        """Parse content as AiPubTaskContent"""
-        if self.is_account_grooming():
+        """Parse content as AiPubTaskContent.
+
+        Returns None for non-AiPubTaskContent shapes (account grooming
+        and reddit posts have their own content dataclasses).
+        """
+        if self.is_account_grooming() or self.is_reddit():
             return None
         return AiPubTaskContent.from_dict(self.content)
-    
+
+    def get_reddit_content(self) -> Optional[RedditPublishContent]:
+        """Parse content as RedditPublishContent for reddit plan types."""
+        if not self.is_reddit():
+            return None
+        return RedditPublishContent.from_dict(self.content)
+
     def validate(self) -> bool:
         if not self.task_id or not self.platform or not self.profile_name:
             return False
         if self.is_account_grooming():
             gc = self.get_grooming_content()
             return gc is not None and bool(gc.generated_name)
+        if self.is_reddit():
+            rc = self.get_reddit_content()
+            if rc is None or not rc.subreddit or not rc.title:
+                return False
+            if self.plan_type == PlanType.REDDIT_LINK:
+                return bool(rc.link_url)
+            if self.plan_type == PlanType.REDDIT_IMAGE:
+                return bool(rc.image_urls)
+            # REDDIT_TEXT: subreddit + title are sufficient
+            # (body is optional even for text posts — a title-only
+            #  post is valid Reddit content).
+            return True
         if self.is_video_publish():
             pc = self.get_publish_content()
             return pc is not None and bool(pc.video_url)
