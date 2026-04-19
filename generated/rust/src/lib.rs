@@ -207,7 +207,13 @@ impl CommentStatus {
             _ => None,
         }
     }
-    
+
+    /// Case-insensitive parse used by API DTOs that read DB string columns.
+    /// Falls back to `Unspecified` instead of None so call sites stay simple.
+    pub fn from_str_status(s: &str) -> Self {
+        Self::from_json_str(&s.to_lowercase()).unwrap_or(CommentStatus::Unspecified)
+    }
+
     /// Convert from i16 status code (database format)
     pub fn from_i16(status: i16) -> Self {
         match status {
@@ -226,6 +232,92 @@ impl CommentStatus {
             CommentStatus::Completed => 2,
             CommentStatus::Failed => 3,
             CommentStatus::Unspecified => -1,
+        }
+    }
+}
+
+// =====================================================================
+// serde adapters for prost-generated enum int fields.
+//
+// prost generates proto enum fields as `i32`. Without help, serde defaults
+// to integer JSON output ("platform": 3). Production consumers (executor,
+// agent, frontend) expect the lowercase string form ("platform": "facebook").
+// The adapters below restore the string wire format on a per-field basis,
+// applied via build.rs `field_attribute`.
+// =====================================================================
+
+pub mod serde_helpers {
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    use super::glance_mind::{CommentStatus, DataType, Platform, TimeRange};
+
+    macro_rules! impl_enum_string_adapter {
+        ($mod_name:ident, $enum_ty:path) => {
+            pub mod $mod_name {
+                use super::*;
+
+                pub fn serialize<S: Serializer>(value: &i32, s: S) -> Result<S::Ok, S::Error> {
+                    let v: $enum_ty =
+                        <$enum_ty as ::core::convert::TryFrom<i32>>::try_from(*value)
+                            .unwrap_or_default();
+                    s.serialize_str(v.to_json_str())
+                }
+
+                pub fn deserialize<'de, D>(d: D) -> Result<i32, D::Error>
+                where
+                    D: Deserializer<'de>,
+                {
+                    let s = String::deserialize(d)?;
+                    let parsed = <$enum_ty>::from_json_str(&s).ok_or_else(|| {
+                        serde::de::Error::custom(format!("unknown variant: {}", s))
+                    })?;
+                    Ok(parsed as i32)
+                }
+            }
+        };
+    }
+
+    impl_enum_string_adapter!(platform, Platform);
+    impl_enum_string_adapter!(data_type, DataType);
+    impl_enum_string_adapter!(time_range, TimeRange);
+    impl_enum_string_adapter!(comment_status, CommentStatus);
+}
+
+// =====================================================================
+// Convenience constructors on prost-generated message types.
+// Mirror helpers that previously lived in the hand-maintained
+// lib_inline.rs (now deleted). Kept as ergonomic shims so consumers
+// don't need to write field-init syntax for common shapes.
+// =====================================================================
+
+impl glance_mind::Pagination {
+    pub fn new(total: i64, page: i32, per_page: i32) -> Self {
+        let total_pages = if per_page > 0 {
+            ((total as f64) / (per_page as f64)).ceil() as i32
+        } else {
+            0
+        };
+        Self {
+            total,
+            page,
+            per_page,
+            total_pages,
+        }
+    }
+}
+
+impl glance_mind::DeviceCommentsResponse {
+    pub fn new(
+        campaign: glance_mind::CampaignConfig,
+        comments: Vec<glance_mind::CommentData>,
+        total: i64,
+        page: i32,
+        per_page: i32,
+    ) -> Self {
+        Self {
+            campaign: Some(campaign),
+            comments,
+            pagination: Some(glance_mind::Pagination::new(total, page, per_page)),
         }
     }
 }

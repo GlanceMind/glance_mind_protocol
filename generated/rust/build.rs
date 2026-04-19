@@ -83,6 +83,31 @@ fn main() -> Result<()> {
         );
     }
 
+    // Enum int fields that must serialize as lowercase string on the wire
+    // (production consumers rely on "platform": "facebook" not 3).
+    // Adapter implementations live in src/lib.rs::serde_helpers.
+    let string_enum_fields = [
+        // (path, adapter_module)
+        // Note: TaskFilters.time_range is Option<i32> (optional in proto),
+        // needs a separate Option-aware adapter — TODO follow-up. For now
+        // it serializes as integer or null.
+        (".glance_mind.CrawlerTaskSpec.platform", "platform"),
+        (".glance_mind.CrawlerTaskSpec.data_type", "data_type"),
+        (".glance_mind.CommentData.platform", "platform"),
+        (".glance_mind.CommentData.status", "comment_status"),
+        (".glance_mind.UpdateCommentStatusRequest.status", "comment_status"),
+    ];
+    for (path, module) in string_enum_fields {
+        config.field_attribute(
+            path,
+            format!(
+                "#[serde(serialize_with = \"crate::serde_helpers::{}::serialize\", \
+                  deserialize_with = \"crate::serde_helpers::{}::deserialize\")]",
+                module, module
+            ),
+        );
+    }
+
     // Generate code from proto files. v2 cutover adds aipub.proto +
     // patrol.proto to the prost pipeline (previously hand-mirrored in
     // the now-deleted lib_inline.rs).
