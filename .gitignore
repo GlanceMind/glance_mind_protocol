@@ -1,0 +1,31 @@
+# Rust
+generated/rust/target/
+generated/rust/Cargo.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cursor IDE
+.cursor/
+.cursorrules
+
+# Symlinked from monorepo root, not part of this repo
+CLAUDE.md
