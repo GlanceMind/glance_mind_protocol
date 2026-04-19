@@ -99,6 +99,9 @@ enum PublishTaskStatus {
 // Type of AI generation task.
 // DB CHECK: ('video_gen','content_gen','image_gen','combined',
 //            'account_grooming')
+// Note: 'image_gen' covers all image providers (Flux Kontext Pro/Max,
+// SeeDream 4.0/4.5, gpt-4o-image). The concrete provider is selected
+// at runtime by ImageGenerationSpec.model + provider_hint.
 enum AiTaskType {
   AI_TASK_TYPE_UNSPECIFIED = 0;
   AI_TASK_TYPE_CONTENT_GEN = 1;        // "content_gen"
@@ -1265,8 +1268,50 @@ message ImageGenerationSpec {
   repeated string reference_image_urls = 7
       [ json_name = "reference_image_urls" ];
 
-  // Optional per-spec knobs (negative_prompt, seed, guidance_scale, …).
+  // Aspect ratio expressed as "W:H" (e.g. "1:1", "16:9", "9:16",
+  // "3:2", "2:3", "7:3", "3:7"). Primary knob for Flux Kontext where
+  // the model auto-sizes to ~1MP. SeeDream and Nano Banana also accept
+  // selected ratios via this field; if both aspect_ratio and
+  // width_px/height_px are set, the explicit pixel size wins.
+  // Flux constraint: must fall in [3:7, 7:3] otherwise downgraded
+  // to "1:1" with a WARN log.
+  optional string aspect_ratio = 8 [ json_name = "aspect_ratio" ];
+
+  // Output image format hint. "jpeg" | "png" | "webp". Currently honored
+  // by Flux (extra_body.output_format); SeeDream returns jpg by default
+  // and ignores this hint.
+  optional string output_format = 9 [ json_name = "output_format" ];
+
+  // Optional per-spec knobs (negative_prompt, guidance_scale, …) that
+  // are not yet promoted to typed fields. Provider-specific keys are
+  // documented in docs/image-provider-param-matrix.md.
   map<string, string> extras = 10;
+
+  // Random seed for reproducibility. Honored by Flux; SeeDream silently
+  // ignores it and emits a `validation_warnings` entry.
+  optional uint64 seed = 11;
+
+  // Whether to render a provider watermark on the output. Defaults to
+  // false. Currently honored by SeeDream only.
+  optional bool watermark = 12;
+
+  // Force routing to a specific provider regardless of `model` prefix.
+  // Values: "flux" | "seedream" | "openai". Empty / unset uses the
+  // default prefix-based routing (flux-kontext-* -> flux,
+  // seedream-* -> seedream, fallback -> openai).
+  optional string provider_hint = 13 [ json_name = "provider_hint" ];
+
+  // Generation mode discriminator:
+  //   "text_to_image" - pure prompt -> image
+  //   "image_edit"    - prompt + reference_image_urls -> edited image
+  // When unset, scheduler infers from reference_image_urls.is_empty():
+  // empty -> text_to_image, non-empty -> image_edit.
+  optional string mode = 14;
+
+  // Content safety strictness for Flux:
+  //   0 = strictest, 6 = most permissive. Default 2.
+  // SeeDream and other providers ignore this field.
+  optional uint32 safety_tolerance = 15 [ json_name = "safety_tolerance" ];
 }
 
 // Spec for one video-generation AI job.

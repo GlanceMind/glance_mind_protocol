@@ -2012,3 +2012,1075 @@ class PatrolConfig:
     @classmethod
     def from_json(cls, json_str: str) -> "PatrolConfig":
         return cls.from_dict(json.loads(json_str))
+
+
+# ============================================================
+# AIPub v2 — Unified Content Schema
+# Mirror of glance_mind_protocol/proto/aipub.proto v2 section.
+# Wire-compatible with Rust prost-generated types in
+# generated/rust/src/lib.rs (after build.rs refactor).
+# ============================================================
+
+
+class MediaKind(str, Enum):
+    UNSPECIFIED = "unspecified"
+    VIDEO = "video"
+    IMAGE = "image"
+    AUDIO = "audio"
+    GIF = "gif"
+    SUBTITLE = "subtitle"  # SRT/VTT track bound to a parent video
+
+    @classmethod
+    def from_string(cls, v: Any) -> "MediaKind":
+        if isinstance(v, cls):
+            return v
+        try:
+            return cls(str(v).lower()) if v is not None else cls.UNSPECIFIED
+        except ValueError:
+            return cls.UNSPECIFIED
+
+
+class MediaSource(str, Enum):
+    UNSPECIFIED = "unspecified"
+    AI_GENERATED = "ai_generated"
+    USER_UPLOADED = "user_uploaded"
+    REFERENCE = "reference"
+
+    @classmethod
+    def from_string(cls, v: Any) -> "MediaSource":
+        if isinstance(v, cls):
+            return v
+        try:
+            return cls(str(v).lower()) if v is not None else cls.UNSPECIFIED
+        except ValueError:
+            return cls.UNSPECIFIED
+
+
+class MediaStatus(str, Enum):
+    UNSPECIFIED = "unspecified"
+    PENDING = "pending"
+    READY = "ready"
+    FAILED = "failed"
+
+    @classmethod
+    def from_string(cls, v: Any) -> "MediaStatus":
+        if isinstance(v, cls):
+            return v
+        try:
+            return cls(str(v).lower()) if v is not None else cls.UNSPECIFIED
+        except ValueError:
+            return cls.UNSPECIFIED
+
+
+class MediaRole(str, Enum):
+    UNSPECIFIED = "unspecified"
+    PRIMARY = "primary"
+    COVER = "cover"
+    START_FRAME = "start_frame"
+    END_FRAME = "end_frame"
+    CAROUSEL_ITEM = "carousel_item"
+    REFERENCE = "reference"
+    BACKGROUND = "background"
+    SOURCE = "source"
+
+    @classmethod
+    def from_string(cls, v: Any) -> "MediaRole":
+        if isinstance(v, cls):
+            return v
+        try:
+            return cls(str(v).lower()) if v is not None else cls.UNSPECIFIED
+        except ValueError:
+            return cls.UNSPECIFIED
+
+
+class TextRole(str, Enum):
+    UNSPECIFIED = "unspecified"
+    TITLE = "title"
+    BODY = "body"
+    CAPTION = "caption"
+    HASHTAG = "hashtag"
+    SUBREDDIT = "subreddit"
+    FLAIR = "flair"
+    LOCATION = "location"
+    VIDEO_SCENE = "video_scene"
+
+    @classmethod
+    def from_string(cls, v: Any) -> "TextRole":
+        if isinstance(v, cls):
+            return v
+        try:
+            return cls(str(v).lower()) if v is not None else cls.UNSPECIFIED
+        except ValueError:
+            return cls.UNSPECIFIED
+
+
+class TextSource(str, Enum):
+    UNSPECIFIED = "unspecified"
+    AI_GENERATED = "ai_generated"
+    USER_PROVIDED = "user_provided"
+
+    @classmethod
+    def from_string(cls, v: Any) -> "TextSource":
+        if isinstance(v, cls):
+            return v
+        try:
+            return cls(str(v).lower()) if v is not None else cls.UNSPECIFIED
+        except ValueError:
+            return cls.UNSPECIFIED
+
+
+class LinkRole(str, Enum):
+    UNSPECIFIED = "unspecified"
+    EXTERNAL = "external"
+    REDDIT_TARGET = "reddit_target"
+    PRODUCT = "product"
+    PROFILE = "profile"
+
+    @classmethod
+    def from_string(cls, v: Any) -> "LinkRole":
+        if isinstance(v, cls):
+            return v
+        try:
+            return cls(str(v).lower()) if v is not None else cls.UNSPECIFIED
+        except ValueError:
+            return cls.UNSPECIFIED
+
+
+class Visibility(str, Enum):
+    UNSPECIFIED = "unspecified"
+    PUBLIC = "public"
+    UNLISTED = "unlisted"
+    FRIENDS = "friends"
+    PRIVATE = "private"
+
+    @classmethod
+    def from_string(cls, v: Any) -> "Visibility":
+        if isinstance(v, cls):
+            return v
+        try:
+            return cls(str(v).lower()) if v is not None else cls.UNSPECIFIED
+        except ValueError:
+            return cls.UNSPECIFIED
+
+
+class EntityTagKind(str, Enum):
+    UNSPECIFIED = "unspecified"
+    MUSIC = "music"
+    PRODUCT = "product"
+    LOCATION = "location"
+    TOPIC = "topic"
+    BRAND_PARTNER = "brand_partner"
+    # NOTE: USER mention intentionally NOT here; see UserMention message.
+
+    @classmethod
+    def from_string(cls, v: Any) -> "EntityTagKind":
+        if isinstance(v, cls):
+            return v
+        try:
+            return cls(str(v).lower()) if v is not None else cls.UNSPECIFIED
+        except ValueError:
+            return cls.UNSPECIFIED
+
+
+class PostPublishActionKind(str, Enum):
+    UNSPECIFIED = "unspecified"
+    AUTO_FIRST_COMMENT = "auto_first_comment"
+    PIN_TO_PROFILE = "pin_to_profile"
+    CROSSPOST = "crosspost"
+    SHARE_TO_STORY = "share_to_story"
+    NOTIFY_WEBHOOK = "notify_webhook"
+
+    @classmethod
+    def from_string(cls, v: Any) -> "PostPublishActionKind":
+        if isinstance(v, cls):
+            return v
+        try:
+            return cls(str(v).lower()) if v is not None else cls.UNSPECIFIED
+        except ValueError:
+            return cls.UNSPECIFIED
+
+
+class PublishResultStatus(str, Enum):
+    UNSPECIFIED = "unspecified"
+    PENDING = "pending"
+    PROCESSING = "processing"
+    SUCCEEDED = "succeeded"
+    PARTIAL_SUCCESS = "partial_success"
+    FAILED = "failed"
+    RETRYING = "retrying"
+
+    @classmethod
+    def from_string(cls, v: Any) -> "PublishResultStatus":
+        if isinstance(v, cls):
+            return v
+        try:
+            return cls(str(v).lower()) if v is not None else cls.UNSPECIFIED
+        except ValueError:
+            return cls.UNSPECIFIED
+
+
+# ------------------------------------------------------------
+# Helper: dump enums as their string value for JSON
+# ------------------------------------------------------------
+
+
+def _enum_val(e: Any) -> Any:
+    """Convert a str-Enum to its .value for JSON dump (or pass through)."""
+    return e.value if isinstance(e, Enum) else e
+
+
+# ============================================================
+# v2 message: MediaItem
+# ============================================================
+
+
+@dataclass
+class MediaItem:
+    kind: MediaKind = MediaKind.UNSPECIFIED
+    source: MediaSource = MediaSource.UNSPECIFIED
+    status: MediaStatus = MediaStatus.UNSPECIFIED
+    role: MediaRole = MediaRole.UNSPECIFIED
+    order: int = 0
+    url: str = ""
+    ai_task_id: Optional[int] = None
+    mime: Optional[str] = None
+    width_px: Optional[int] = None
+    height_px: Optional[int] = None
+    duration_ms: Optional[int] = None
+    bytes: Optional[int] = None
+    provider_asset_uri: Optional[str] = None
+    language: Optional[str] = None  # BCP-47, required for SUBTITLE
+    parent_media_index: Optional[int] = None  # required for SUBTITLE
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "kind": _enum_val(self.kind),
+            "source": _enum_val(self.source),
+            "status": _enum_val(self.status),
+            "role": _enum_val(self.role),
+            "order": self.order,
+            "url": self.url,
+        }
+        for k in ("ai_task_id", "mime", "width_px", "height_px", "duration_ms",
+                  "bytes", "provider_asset_uri", "language", "parent_media_index"):
+            v = getattr(self, k)
+            if v is not None:
+                d[k] = v
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "MediaItem":
+        return cls(
+            kind=MediaKind.from_string(data.get("kind")),
+            source=MediaSource.from_string(data.get("source")),
+            status=MediaStatus.from_string(data.get("status")),
+            role=MediaRole.from_string(data.get("role")),
+            order=data.get("order", 0),
+            url=data.get("url", ""),
+            ai_task_id=data.get("ai_task_id"),
+            mime=data.get("mime"),
+            width_px=data.get("width_px"),
+            height_px=data.get("height_px"),
+            duration_ms=data.get("duration_ms"),
+            bytes=data.get("bytes"),
+            provider_asset_uri=data.get("provider_asset_uri"),
+            language=data.get("language"),
+            parent_media_index=data.get("parent_media_index"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "MediaItem":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class TextBlock:
+    role: TextRole = TextRole.UNSPECIFIED
+    value: str = ""
+    source: TextSource = TextSource.UNSPECIFIED
+    order: int = 0
+    variation_index: Optional[int] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = {
+            "role": _enum_val(self.role),
+            "value": self.value,
+            "source": _enum_val(self.source),
+            "order": self.order,
+        }
+        if self.variation_index is not None:
+            d["variation_index"] = self.variation_index
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "TextBlock":
+        return cls(
+            role=TextRole.from_string(data.get("role")),
+            value=data.get("value", ""),
+            source=TextSource.from_string(data.get("source")),
+            order=data.get("order", 0),
+            variation_index=data.get("variation_index"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "TextBlock":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class LinkItem:
+    role: LinkRole = LinkRole.UNSPECIFIED
+    url: str = ""
+    label: Optional[str] = None
+    order: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = {
+            "role": _enum_val(self.role),
+            "url": self.url,
+            "order": self.order,
+        }
+        if self.label is not None:
+            d["label"] = self.label
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "LinkItem":
+        return cls(
+            role=LinkRole.from_string(data.get("role")),
+            url=data.get("url", ""),
+            label=data.get("label"),
+            order=data.get("order", 0),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "LinkItem":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class EntityTag:
+    kind: EntityTagKind = EntityTagKind.UNSPECIFIED
+    platform_id: Optional[str] = None
+    display_name: str = ""
+    text_index: Optional[int] = None
+    text_byte_offset: Optional[int] = None
+    text_byte_length: Optional[int] = None
+    media_index: Optional[int] = None
+    media_x: Optional[float] = None
+    media_y: Optional[float] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    extras: Dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "kind": _enum_val(self.kind),
+            "display_name": self.display_name,
+        }
+        for k in ("platform_id", "text_index", "text_byte_offset", "text_byte_length",
+                  "media_index", "media_x", "media_y", "latitude", "longitude"):
+            v = getattr(self, k)
+            if v is not None:
+                d[k] = v
+        if self.extras:
+            d["extras"] = self.extras
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "EntityTag":
+        return cls(
+            kind=EntityTagKind.from_string(data.get("kind")),
+            platform_id=data.get("platform_id"),
+            display_name=data.get("display_name", ""),
+            text_index=data.get("text_index"),
+            text_byte_offset=data.get("text_byte_offset"),
+            text_byte_length=data.get("text_byte_length"),
+            media_index=data.get("media_index"),
+            media_x=data.get("media_x"),
+            media_y=data.get("media_y"),
+            latitude=data.get("latitude"),
+            longitude=data.get("longitude"),
+            extras=dict(data.get("extras", {})),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "EntityTag":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class UserMention:
+    handle: str = ""
+    platform_user_id: Optional[str] = None
+    text_index: Optional[int] = None
+    byte_offset: Optional[int] = None
+    byte_length: Optional[int] = None
+    hidden: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {"handle": self.handle, "hidden": self.hidden}
+        for k in ("platform_user_id", "text_index", "byte_offset", "byte_length"):
+            v = getattr(self, k)
+            if v is not None:
+                d[k] = v
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "UserMention":
+        return cls(
+            handle=data.get("handle", ""),
+            platform_user_id=data.get("platform_user_id"),
+            text_index=data.get("text_index"),
+            byte_offset=data.get("byte_offset"),
+            byte_length=data.get("byte_length"),
+            hidden=data.get("hidden", False),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "UserMention":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class PublishBehavior:
+    visibility: Visibility = Visibility.UNSPECIFIED
+    allow_comments: Optional[bool] = None
+    allow_sharing: Optional[bool] = None
+    allow_download: Optional[bool] = None
+    is_nsfw: Optional[bool] = None
+    is_spoiler: Optional[bool] = None
+    ai_generated_disclosure: Optional[bool] = None
+    allow_duet: Optional[bool] = None
+    allow_stitch: Optional[bool] = None
+    disclose_branded_content: Optional[bool] = None
+    allow_remix: Optional[bool] = None
+    share_to_facebook: Optional[bool] = None
+    extras: Dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {"visibility": _enum_val(self.visibility)}
+        for k in ("allow_comments", "allow_sharing", "allow_download", "is_nsfw",
+                  "is_spoiler", "ai_generated_disclosure", "allow_duet", "allow_stitch",
+                  "disclose_branded_content", "allow_remix", "share_to_facebook"):
+            v = getattr(self, k)
+            if v is not None:
+                d[k] = v
+        if self.extras:
+            d["extras"] = self.extras
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PublishBehavior":
+        return cls(
+            visibility=Visibility.from_string(data.get("visibility")),
+            allow_comments=data.get("allow_comments"),
+            allow_sharing=data.get("allow_sharing"),
+            allow_download=data.get("allow_download"),
+            is_nsfw=data.get("is_nsfw"),
+            is_spoiler=data.get("is_spoiler"),
+            ai_generated_disclosure=data.get("ai_generated_disclosure"),
+            allow_duet=data.get("allow_duet"),
+            allow_stitch=data.get("allow_stitch"),
+            disclose_branded_content=data.get("disclose_branded_content"),
+            allow_remix=data.get("allow_remix"),
+            share_to_facebook=data.get("share_to_facebook"),
+            extras=dict(data.get("extras", {})),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "PublishBehavior":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class PublishSchedule:
+    scheduled_at: str = ""
+    timezone: Optional[str] = None
+    save_as_draft: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "scheduled_at": self.scheduled_at,
+            "save_as_draft": self.save_as_draft,
+        }
+        if self.timezone is not None:
+            d["timezone"] = self.timezone
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PublishSchedule":
+        return cls(
+            scheduled_at=data.get("scheduled_at", ""),
+            timezone=data.get("timezone"),
+            save_as_draft=data.get("save_as_draft", False),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "PublishSchedule":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class PostPublishAction:
+    kind: PostPublishActionKind = PostPublishActionKind.UNSPECIFIED
+    comment_text: Optional[str] = None
+    targets: List[str] = field(default_factory=list)
+    webhook_url: Optional[str] = None
+    webhook_bearer: Optional[str] = None
+    extras: Dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "kind": _enum_val(self.kind),
+            "targets": self.targets,
+        }
+        for k in ("comment_text", "webhook_url", "webhook_bearer"):
+            v = getattr(self, k)
+            if v is not None:
+                d[k] = v
+        if self.extras:
+            d["extras"] = self.extras
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PostPublishAction":
+        return cls(
+            kind=PostPublishActionKind.from_string(data.get("kind")),
+            comment_text=data.get("comment_text"),
+            targets=list(data.get("targets", [])),
+            webhook_url=data.get("webhook_url"),
+            webhook_bearer=data.get("webhook_bearer"),
+            extras=dict(data.get("extras", {})),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "PostPublishAction":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class UnifiedPublishContent:
+    """v2 replacement for AiPubTaskContent. version MUST be 2."""
+    version: int = 2
+    platform: str = ""
+    platform_id: int = 0
+    content_type: str = ""
+    plan_type: str = ""
+    media: List[MediaItem] = field(default_factory=list)
+    texts: List[TextBlock] = field(default_factory=list)
+    links: List[LinkItem] = field(default_factory=list)
+    tags: List[EntityTag] = field(default_factory=list)
+    mentions: List[UserMention] = field(default_factory=list)
+    platform_extras: Dict[str, str] = field(default_factory=dict)
+    behavior: Optional[PublishBehavior] = None
+    schedule: Optional[PublishSchedule] = None
+    post_publish: List[PostPublishAction] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "version": self.version,
+            "platform": self.platform,
+            "platform_id": self.platform_id,
+            "content_type": self.content_type,
+            "plan_type": self.plan_type,
+            "media": [m.to_dict() for m in self.media],
+            "texts": [t.to_dict() for t in self.texts],
+            "links": [l.to_dict() for l in self.links],
+            "tags": [t.to_dict() for t in self.tags],
+            "mentions": [m.to_dict() for m in self.mentions],
+            "post_publish": [a.to_dict() for a in self.post_publish],
+        }
+        if self.platform_extras:
+            d["platform_extras"] = self.platform_extras
+        if self.behavior is not None:
+            d["behavior"] = self.behavior.to_dict()
+        if self.schedule is not None:
+            d["schedule"] = self.schedule.to_dict()
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "UnifiedPublishContent":
+        return cls(
+            version=data.get("version", 2),
+            platform=data.get("platform", ""),
+            platform_id=data.get("platform_id", 0),
+            content_type=data.get("content_type", ""),
+            plan_type=data.get("plan_type", ""),
+            media=[MediaItem.from_dict(m) for m in data.get("media", [])],
+            texts=[TextBlock.from_dict(t) for t in data.get("texts", [])],
+            links=[LinkItem.from_dict(l) for l in data.get("links", [])],
+            tags=[EntityTag.from_dict(t) for t in data.get("tags", [])],
+            mentions=[UserMention.from_dict(m) for m in data.get("mentions", [])],
+            platform_extras=dict(data.get("platform_extras", {})),
+            behavior=PublishBehavior.from_dict(data["behavior"]) if data.get("behavior") else None,
+            schedule=PublishSchedule.from_dict(data["schedule"]) if data.get("schedule") else None,
+            post_publish=[PostPublishAction.from_dict(a) for a in data.get("post_publish", [])],
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "UnifiedPublishContent":
+        return cls.from_dict(json.loads(json_str))
+
+
+# ============================================================
+# v2 result reporting (Executor → API)
+# ============================================================
+
+
+@dataclass
+class MediaPublishResult:
+    media_index: int = 0
+    status: MediaStatus = MediaStatus.UNSPECIFIED
+    platform_asset_id: Optional[str] = None
+    platform_asset_url: Optional[str] = None
+    failed_reason: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "media_index": self.media_index,
+            "status": _enum_val(self.status),
+        }
+        for k in ("platform_asset_id", "platform_asset_url", "failed_reason"):
+            v = getattr(self, k)
+            if v is not None:
+                d[k] = v
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "MediaPublishResult":
+        return cls(
+            media_index=data.get("media_index", 0),
+            status=MediaStatus.from_string(data.get("status")),
+            platform_asset_id=data.get("platform_asset_id"),
+            platform_asset_url=data.get("platform_asset_url"),
+            failed_reason=data.get("failed_reason"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "MediaPublishResult":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class PostPublishActionResult:
+    action_index: int = 0
+    kind: PostPublishActionKind = PostPublishActionKind.UNSPECIFIED
+    succeeded: bool = False
+    failed_reason: Optional[str] = None
+    platform_artifact_id: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "action_index": self.action_index,
+            "kind": _enum_val(self.kind),
+            "succeeded": self.succeeded,
+        }
+        for k in ("failed_reason", "platform_artifact_id"):
+            v = getattr(self, k)
+            if v is not None:
+                d[k] = v
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PostPublishActionResult":
+        return cls(
+            action_index=data.get("action_index", 0),
+            kind=PostPublishActionKind.from_string(data.get("kind")),
+            succeeded=data.get("succeeded", False),
+            failed_reason=data.get("failed_reason"),
+            platform_artifact_id=data.get("platform_artifact_id"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "PostPublishActionResult":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class PublishMetrics:
+    views: int = 0
+    likes: int = 0
+    comments: int = 0
+    shares: int = 0
+    saves: int = 0
+    plays: int = 0
+    snapshot_at: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "views": self.views,
+            "likes": self.likes,
+            "comments": self.comments,
+            "shares": self.shares,
+            "saves": self.saves,
+            "plays": self.plays,
+        }
+        if self.snapshot_at is not None:
+            d["snapshot_at"] = self.snapshot_at
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PublishMetrics":
+        return cls(
+            views=data.get("views", 0),
+            likes=data.get("likes", 0),
+            comments=data.get("comments", 0),
+            shares=data.get("shares", 0),
+            saves=data.get("saves", 0),
+            plays=data.get("plays", 0),
+            snapshot_at=data.get("snapshot_at"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "PublishMetrics":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class UnifiedPublishResult:
+    """v2 replacement for ExecutorTaskStatusUpdate. version MUST be 2."""
+    version: int = 2
+    task_id: int = 0
+    status: PublishResultStatus = PublishResultStatus.UNSPECIFIED
+    platform_post_id: Optional[str] = None
+    platform_post_url: Optional[str] = None
+    published_at: Optional[str] = None
+    failed_reason: Optional[str] = None
+    failed_error_code: Optional[str] = None
+    retry_count: int = 0
+    next_retry_at: Optional[str] = None
+    media_results: List[MediaPublishResult] = field(default_factory=list)
+    post_publish_results: List[PostPublishActionResult] = field(default_factory=list)
+    initial_metrics: Optional[PublishMetrics] = None
+    raw_response_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "version": self.version,
+            "task_id": self.task_id,
+            "status": _enum_val(self.status),
+            "retry_count": self.retry_count,
+            "media_results": [m.to_dict() for m in self.media_results],
+            "post_publish_results": [a.to_dict() for a in self.post_publish_results],
+        }
+        for k in ("platform_post_id", "platform_post_url", "published_at",
+                  "failed_reason", "failed_error_code", "next_retry_at",
+                  "raw_response_json"):
+            v = getattr(self, k)
+            if v is not None:
+                d[k] = v
+        if self.initial_metrics is not None:
+            d["initial_metrics"] = self.initial_metrics.to_dict()
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "UnifiedPublishResult":
+        return cls(
+            version=data.get("version", 2),
+            task_id=data.get("task_id", 0),
+            status=PublishResultStatus.from_string(data.get("status")),
+            platform_post_id=data.get("platform_post_id"),
+            platform_post_url=data.get("platform_post_url"),
+            published_at=data.get("published_at"),
+            failed_reason=data.get("failed_reason"),
+            failed_error_code=data.get("failed_error_code"),
+            retry_count=data.get("retry_count", 0),
+            next_retry_at=data.get("next_retry_at"),
+            media_results=[MediaPublishResult.from_dict(m) for m in data.get("media_results", [])],
+            post_publish_results=[PostPublishActionResult.from_dict(a) for a in data.get("post_publish_results", [])],
+            initial_metrics=PublishMetrics.from_dict(data["initial_metrics"]) if data.get("initial_metrics") else None,
+            raw_response_json=data.get("raw_response_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "UnifiedPublishResult":
+        return cls.from_dict(json.loads(json_str))
+
+
+# ============================================================
+# v2 input — generation specs + UnifiedAiPubInput
+# ============================================================
+
+
+@dataclass
+class TextGenerationSpec:
+    prompts: List[str] = field(default_factory=list)
+    count: int = 1
+    target_roles: List[str] = field(default_factory=list)
+    model: Optional[str] = None
+    extras: Dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "prompts": self.prompts,
+            "count": self.count,
+            "target_roles": self.target_roles,
+        }
+        if self.model is not None:
+            d["model"] = self.model
+        if self.extras:
+            d["extras"] = self.extras
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "TextGenerationSpec":
+        return cls(
+            prompts=list(data.get("prompts", [])),
+            count=data.get("count", 1),
+            target_roles=list(data.get("target_roles", [])),
+            model=data.get("model"),
+            extras=dict(data.get("extras", {})),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "TextGenerationSpec":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class ImageGenerationSpec:
+    """All 15 fields including the 8 recently added (v2.0):
+    aspect_ratio, output_format, seed, watermark, provider_hint, mode, safety_tolerance.
+    Mirrors aipub.proto ImageGenerationSpec.
+    """
+    prompts: List[str] = field(default_factory=list)
+    count: int = 1
+    model: Optional[str] = None
+    width_px: int = 0
+    height_px: int = 0
+    role_hint: MediaRole = MediaRole.UNSPECIFIED
+    reference_image_urls: List[str] = field(default_factory=list)
+    aspect_ratio: Optional[str] = None
+    output_format: Optional[str] = None
+    extras: Dict[str, str] = field(default_factory=dict)
+    seed: Optional[int] = None
+    watermark: Optional[bool] = None
+    provider_hint: Optional[str] = None  # "flux" | "seedream" | "openai"
+    mode: Optional[str] = None  # "text_to_image" | "image_edit"
+    safety_tolerance: Optional[int] = None  # Flux only, 0..6
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "prompts": self.prompts,
+            "count": self.count,
+            "width_px": self.width_px,
+            "height_px": self.height_px,
+            "role_hint": _enum_val(self.role_hint),
+            "reference_image_urls": self.reference_image_urls,
+        }
+        for k in ("model", "aspect_ratio", "output_format", "seed",
+                  "watermark", "provider_hint", "mode", "safety_tolerance"):
+            v = getattr(self, k)
+            if v is not None:
+                d[k] = v
+        if self.extras:
+            d["extras"] = self.extras
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ImageGenerationSpec":
+        return cls(
+            prompts=list(data.get("prompts", [])),
+            count=data.get("count", 1),
+            model=data.get("model"),
+            width_px=data.get("width_px", 0),
+            height_px=data.get("height_px", 0),
+            role_hint=MediaRole.from_string(data.get("role_hint")),
+            reference_image_urls=list(data.get("reference_image_urls", [])),
+            aspect_ratio=data.get("aspect_ratio"),
+            output_format=data.get("output_format"),
+            extras=dict(data.get("extras", {})),
+            seed=data.get("seed"),
+            watermark=data.get("watermark"),
+            provider_hint=data.get("provider_hint"),
+            mode=data.get("mode"),
+            safety_tolerance=data.get("safety_tolerance"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "ImageGenerationSpec":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class VideoGenerationSpec:
+    """Carries video-specific engine configs as nested dicts (Vidu, Seedance, etc.).
+    Engine sub-message types stay v1 typed (ViduVideoConfig / SeedanceVideoConfig)
+    and are stored here as their dict form for forward-compat.
+    """
+    prompts: List[str] = field(default_factory=list)
+    count: int = 1
+    model: Optional[str] = None
+    role_hint: MediaRole = MediaRole.UNSPECIFIED
+    video_config: Optional[Dict[str, Any]] = None
+    vidu_config: Optional[Dict[str, Any]] = None
+    seedance_config: Optional[Dict[str, Any]] = None
+    reference_video: Optional[Dict[str, Any]] = None
+    start_image_urls: List[str] = field(default_factory=list)
+    end_image_urls: List[str] = field(default_factory=list)
+    reference_image_urls: List[str] = field(default_factory=list)
+    generation_mode: Optional[str] = None
+    extras: Dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "prompts": self.prompts,
+            "count": self.count,
+            "role_hint": _enum_val(self.role_hint),
+            "start_image_urls": self.start_image_urls,
+            "end_image_urls": self.end_image_urls,
+            "reference_image_urls": self.reference_image_urls,
+        }
+        for k in ("model", "video_config", "vidu_config", "seedance_config",
+                  "reference_video", "generation_mode"):
+            v = getattr(self, k)
+            if v is not None:
+                d[k] = v
+        if self.extras:
+            d["extras"] = self.extras
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "VideoGenerationSpec":
+        return cls(
+            prompts=list(data.get("prompts", [])),
+            count=data.get("count", 1),
+            model=data.get("model"),
+            role_hint=MediaRole.from_string(data.get("role_hint")),
+            video_config=data.get("video_config"),
+            vidu_config=data.get("vidu_config"),
+            seedance_config=data.get("seedance_config"),
+            reference_video=data.get("reference_video"),
+            start_image_urls=list(data.get("start_image_urls", [])),
+            end_image_urls=list(data.get("end_image_urls", [])),
+            reference_image_urls=list(data.get("reference_image_urls", [])),
+            generation_mode=data.get("generation_mode"),
+            extras=dict(data.get("extras", {})),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "VideoGenerationSpec":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class AccountMediaOverride:
+    """Per-account media overrides (replaces v1 account_images)."""
+    media: List[MediaItem] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"media": [m.to_dict() for m in self.media]}
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AccountMediaOverride":
+        return cls(media=[MediaItem.from_dict(m) for m in data.get("media", [])])
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "AccountMediaOverride":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class UnifiedAiPubInput:
+    """v2 replacement for AiPubInput. version MUST be 2.
+    Three repeated *GenerationSpec lists can coexist in a single plan
+    (e.g. FB Post = caption text + carousel images + cover video).
+    """
+    version: int = 2
+    text_generations: List[TextGenerationSpec] = field(default_factory=list)
+    image_generations: List[ImageGenerationSpec] = field(default_factory=list)
+    video_generations: List[VideoGenerationSpec] = field(default_factory=list)
+    initial_media: List[MediaItem] = field(default_factory=list)
+    account_media: Dict[str, AccountMediaOverride] = field(default_factory=dict)
+    platform_config: Optional[Dict[str, Any]] = None  # oneof; serialized as raw dict
+    generation_extras: Dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {
+            "version": self.version,
+            "text_generations": [s.to_dict() for s in self.text_generations],
+            "image_generations": [s.to_dict() for s in self.image_generations],
+            "video_generations": [s.to_dict() for s in self.video_generations],
+            "initial_media": [m.to_dict() for m in self.initial_media],
+            "account_media": {k: v.to_dict() for k, v in self.account_media.items()},
+        }
+        if self.platform_config is not None:
+            d["platform_config"] = self.platform_config
+        if self.generation_extras:
+            d["generation_extras"] = self.generation_extras
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "UnifiedAiPubInput":
+        return cls(
+            version=data.get("version", 2),
+            text_generations=[TextGenerationSpec.from_dict(s) for s in data.get("text_generations", [])],
+            image_generations=[ImageGenerationSpec.from_dict(s) for s in data.get("image_generations", [])],
+            video_generations=[VideoGenerationSpec.from_dict(s) for s in data.get("video_generations", [])],
+            initial_media=[MediaItem.from_dict(m) for m in data.get("initial_media", [])],
+            account_media={
+                k: AccountMediaOverride.from_dict(v)
+                for k, v in data.get("account_media", {}).items()
+            },
+            platform_config=data.get("platform_config"),
+            generation_extras=dict(data.get("generation_extras", {})),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "UnifiedAiPubInput":
+        return cls.from_dict(json.loads(json_str))

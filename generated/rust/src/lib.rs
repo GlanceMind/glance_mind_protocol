@@ -282,4 +282,247 @@ mod tests {
         assert_eq!(CommentStatus::from_i16(0), CommentStatus::Pending);
         assert_eq!(CommentStatus::Completed.to_i16(), 2);
     }
+
+    // =====================================================
+    // image_provider_routes.json fixture validation
+    // (TDD step 1: matrix CI gate single source of truth)
+    // =====================================================
+
+    #[derive(serde::Deserialize, Debug)]
+    struct RoutesFile {
+        version: u32,
+        routes: Vec<RouteEntry>,
+    }
+
+    #[derive(serde::Deserialize, Debug, PartialEq)]
+    struct RouteEntry {
+        model_key: String,
+        provider: String,
+        modes: Vec<String>,
+    }
+
+    fn load_routes() -> RoutesFile {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../proto/image_provider_routes.json");
+        let raw = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("cannot read {}: {}", path.display(), e));
+        serde_json::from_str(&raw).expect("routes JSON must parse")
+    }
+
+    #[test]
+    fn test_image_provider_routes_fixture_exists_and_parses() {
+        let f = load_routes();
+        assert_eq!(f.version, 1, "fixture schema version must be 1");
+        assert!(!f.routes.is_empty(), "must have at least one route");
+    }
+
+    #[test]
+    fn test_image_provider_routes_provider_whitelist() {
+        let f = load_routes();
+        for r in &f.routes {
+            assert!(
+                matches!(r.provider.as_str(), "flux" | "seedream" | "openai"),
+                "unknown provider {} in route {}",
+                r.provider,
+                r.model_key
+            );
+        }
+    }
+
+    #[test]
+    fn test_image_provider_routes_mode_whitelist() {
+        let f = load_routes();
+        for r in &f.routes {
+            assert!(!r.modes.is_empty(), "route {} has empty modes", r.model_key);
+            for m in &r.modes {
+                assert!(
+                    matches!(m.as_str(), "text_to_image" | "image_edit"),
+                    "unknown mode {} in route {}",
+                    m,
+                    r.model_key
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_image_provider_routes_covers_matrix_table_b() {
+        // Must contain every route in image-provider-param-matrix.md Table B.
+        let f = load_routes();
+        let must_have: &[(&str, &str, &[&str])] = &[
+            ("flux-kontext-pro", "flux", &["text_to_image", "image_edit"]),
+            ("flux-kontext-max", "flux", &["text_to_image", "image_edit"]),
+            ("seedream-4-0-250828", "seedream", &["text_to_image", "image_edit"]),
+            ("seedream-4-5-251128", "seedream", &["text_to_image", "image_edit"]),
+        ];
+        for (model, provider, modes) in must_have {
+            let entry = f.routes.iter().find(|r| r.model_key == *model);
+            let entry = entry
+                .unwrap_or_else(|| panic!("matrix Table B model_key {} missing in fixture", model));
+            assert_eq!(entry.provider, *provider, "provider mismatch for {}", model);
+            for m in *modes {
+                assert!(
+                    entry.modes.iter().any(|s| s == m),
+                    "mode {} missing for model {}",
+                    m,
+                    model
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_image_provider_routes_openai_legacy_no_edit() {
+        // OpenAI providers (gpt-4o-image, dall-e-3) currently only support text_to_image.
+        // legacy.rs hard-codes this; fixture must not list image_edit for them.
+        let f = load_routes();
+        for r in f.routes.iter().filter(|r| r.provider == "openai") {
+            assert!(
+                !r.modes.iter().any(|m| m == "image_edit"),
+                "OpenAI provider {} cannot list image_edit (legacy client only supports T2I)",
+                r.model_key
+            );
+        }
+    }
+
+    // =====================================================
+    // v2 message roundtrip tests
+    // (TDD step 2: build.rs must compile aipub.proto + patrol.proto)
+    // =====================================================
+
+    #[test]
+    fn test_v2_unified_pub_content_roundtrip() {
+        // Build a minimal valid v2 UnifiedPublishContent and roundtrip it
+        // through serde_json. This will only compile after build.rs is
+        // refactored to feed aipub.proto into prost-build.
+        let content = UnifiedPublishContent {
+            version: 2,
+            platform: "tiktok".to_string(),
+            platform_id: 2,
+            content_type: "video".to_string(),
+            plan_type: "single_video".to_string(),
+            media: vec![MediaItem {
+                kind: MediaKind::Video as i32,
+                source: MediaSource::AiGenerated as i32,
+                status: MediaStatus::Ready as i32,
+                role: MediaRole::Primary as i32,
+                order: 0,
+                url: "https://oss.example.com/video.mp4".to_string(),
+                ai_task_id: Some(123),
+                mime: None,
+                width_px: None,
+                height_px: None,
+                duration_ms: None,
+                bytes: None,
+                provider_asset_uri: None,
+                language: None,
+                parent_media_index: None,
+            }],
+            texts: vec![],
+            links: vec![],
+            tags: vec![],
+            mentions: vec![],
+            platform_extras: Default::default(),
+            behavior: None,
+            schedule: None,
+            post_publish: vec![],
+        };
+
+        let json = serde_json::to_string(&content).expect("serialize");
+        let parsed: UnifiedPublishContent = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.version, 2);
+        assert_eq!(parsed.media.len(), 1);
+        assert_eq!(parsed.media[0].url, "https://oss.example.com/video.mp4");
+    }
+
+    #[test]
+    fn test_v2_image_generation_spec_roundtrip() {
+        // ImageGenerationSpec must include all 15 fields, including the
+        // 8 recently added (aspect_ratio, output_format, seed, watermark,
+        // provider_hint, mode, safety_tolerance).
+        let spec = ImageGenerationSpec {
+            prompts: vec!["a cat".to_string()],
+            count: 3,
+            model: Some("flux-kontext-pro".to_string()),
+            width_px: 0,
+            height_px: 0,
+            role_hint: MediaRole::CarouselItem as i32,
+            reference_image_urls: vec![],
+            aspect_ratio: Some("16:9".to_string()),
+            output_format: Some("png".to_string()),
+            extras: Default::default(),
+            seed: Some(42),
+            watermark: Some(false),
+            provider_hint: Some("flux".to_string()),
+            mode: Some("text_to_image".to_string()),
+            safety_tolerance: Some(2),
+        };
+
+        let json = serde_json::to_string(&spec).expect("serialize");
+        let parsed: ImageGenerationSpec = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.aspect_ratio.as_deref(), Some("16:9"));
+        assert_eq!(parsed.provider_hint.as_deref(), Some("flux"));
+        assert_eq!(parsed.safety_tolerance, Some(2));
+    }
+
+    #[test]
+    fn test_v2_unified_publish_result_roundtrip() {
+        // UnifiedPublishResult replaces v1 ExecutorTaskStatusUpdate with
+        // typed status enum + media/post_publish results + initial metrics.
+        let result = UnifiedPublishResult {
+            version: 2,
+            task_id: 999,
+            status: PublishResultStatus::Succeeded as i32,
+            platform_post_id: Some("t3_xxx".to_string()),
+            platform_post_url: Some("https://reddit.com/r/foo/comments/xxx".to_string()),
+            published_at: Some("2026-04-19T12:00:00Z".to_string()),
+            failed_reason: None,
+            failed_error_code: None,
+            retry_count: 0,
+            next_retry_at: None,
+            media_results: vec![],
+            post_publish_results: vec![],
+            initial_metrics: None,
+            raw_response_json: None,
+        };
+
+        let json = serde_json::to_string(&result).expect("serialize");
+        let parsed: UnifiedPublishResult = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.status, PublishResultStatus::Succeeded as i32);
+        assert_eq!(parsed.platform_post_id.as_deref(), Some("t3_xxx"));
+    }
+
+    #[test]
+    fn test_v2_unified_ai_pub_input_with_three_specs() {
+        // The asymmetric input model: three repeated *GenerationSpec lists
+        // (text/image/video) can coexist in one plan.
+        let input = UnifiedAiPubInput {
+            version: 2,
+            text_generations: vec![TextGenerationSpec {
+                prompts: vec!["caption".to_string()],
+                count: 1,
+                target_roles: vec!["CAPTION".to_string()],
+                model: Some("gpt-4o".to_string()),
+                extras: Default::default(),
+            }],
+            image_generations: vec![ImageGenerationSpec {
+                prompts: vec!["a thumbnail".to_string()],
+                count: 1,
+                model: Some("flux-kontext-pro".to_string()),
+                role_hint: MediaRole::Cover as i32,
+                ..Default::default()
+            }],
+            video_generations: vec![],
+            initial_media: vec![],
+            account_media: Default::default(),
+            platform_config: None,
+            generation_extras: Default::default(),
+        };
+
+        let json = serde_json::to_string(&input).expect("serialize");
+        let parsed: UnifiedAiPubInput = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.text_generations.len(), 1);
+        assert_eq!(parsed.image_generations.len(), 1);
+        assert_eq!(parsed.video_generations.len(), 0);
+    }
 }

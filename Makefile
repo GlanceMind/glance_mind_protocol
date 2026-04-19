@@ -29,43 +29,30 @@ validate:
 	@protoc -I=proto --descriptor_set_out=/dev/null proto/*.proto
 	@echo "✓ All proto files valid"
 
-# Sync generated code to consumer projects
+# Sync generated PYTHON code to consumer projects.
+#
+# v2 cutover: Rust consumers now use Cargo path-dep on this crate
+# (`glance_mind_protocol = { path = "../glance_mind_protocol/generated/rust" }`)
+# so they auto-pick up prost-generated types via cargo build. Only Python
+# still needs explicit sync (manually maintained — no Python codegen).
 sync: generate-all
-	@echo "Syncing to Scheduler (inline version)..."
-	@mkdir -p ../glance_mind_worker/glance_mind_scheduler/src/protocol_gen
-	@cp generated/rust/src/lib_inline.rs ../glance_mind_worker/glance_mind_scheduler/src/protocol_gen/mod.rs
-	@echo "Syncing to Agent (Python)..."
-	@mkdir -p ../glance_mind_worker/glance_mind_agent/src/protocol_gen
-	@cp generated/python/glance_mind.py ../glance_mind_worker/glance_mind_agent/src/protocol_gen/
-	@cp generated/python/__init__.py ../glance_mind_worker/glance_mind_agent/src/protocol_gen/
-	@echo "Syncing to Agent-RS (Rust)..."
-	@mkdir -p ../glance_mind_agent_rs/src/protocol_gen
-	@cp generated/rust/src/lib_inline.rs ../glance_mind_agent_rs/src/protocol_gen/mod.rs
-	@echo "Syncing to Executor..."
+	@echo "Syncing Python types to Executor..."
 	@mkdir -p ../glance_mind_worker/glance_mind_executor/protocol_gen
 	@cp generated/python/glance_mind.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
 	@cp generated/python/__init__.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
-	@echo "Syncing to Rust API (inline version)..."
-	@mkdir -p ../glance_mind_rust/crates/api/src/protocol_gen
-	@cp generated/rust/src/lib_inline.rs ../glance_mind_rust/crates/api/src/protocol_gen/mod.rs
-	@echo "✓ Code synced to all projects"
+	@echo "✓ Python code synced to executor"
+	@echo ""
+	@echo "Note: Rust consumers (api / scheduler / agent_rs) auto-pick up"
+	@echo "      types via Cargo path-dep on this crate — no copy needed."
+	@echo "      Run 'cargo build' in each consumer to regenerate."
 
-# Sync only (without regenerating)
+# Sync Python only (without regenerating)
 sync-only:
-	@echo "Syncing existing generated code..."
-	@mkdir -p ../glance_mind_worker/glance_mind_scheduler/src/protocol_gen
-	@cp generated/rust/src/lib_inline.rs ../glance_mind_worker/glance_mind_scheduler/src/protocol_gen/mod.rs
-	@mkdir -p ../glance_mind_worker/glance_mind_agent/src/protocol_gen
-	@cp generated/python/glance_mind.py ../glance_mind_worker/glance_mind_agent/src/protocol_gen/
-	@cp generated/python/__init__.py ../glance_mind_worker/glance_mind_agent/src/protocol_gen/
-	@mkdir -p ../glance_mind_agent_rs/src/protocol_gen
-	@cp generated/rust/src/lib_inline.rs ../glance_mind_agent_rs/src/protocol_gen/mod.rs
+	@echo "Syncing existing Python code..."
 	@mkdir -p ../glance_mind_worker/glance_mind_executor/protocol_gen
 	@cp generated/python/glance_mind.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
 	@cp generated/python/__init__.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
-	@mkdir -p ../glance_mind_rust/crates/api/src/protocol_gen
-	@cp generated/rust/src/lib_inline.rs ../glance_mind_rust/crates/api/src/protocol_gen/mod.rs
-	@echo "✓ Code synced"
+	@echo "✓ Python code synced"
 
 # Clean generated files (be careful!)
 clean:
