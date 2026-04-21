@@ -29,30 +29,48 @@ validate:
 	@protoc -I=proto --descriptor_set_out=/dev/null proto/*.proto
 	@echo "✓ All proto files valid"
 
-# Sync generated PYTHON code to consumer projects.
+# Sync generated code to all consumer projects.
 #
-# v2 cutover: Rust consumers now use Cargo path-dep on this crate
-# (`glance_mind_protocol = { path = "../glance_mind_protocol/generated/rust" }`)
-# so they auto-pick up prost-generated types via cargo build. Only Python
-# still needs explicit sync (manually maintained — no Python codegen).
-sync: generate-all
+# Each consumer vendors its own copy of this crate to keep its repo
+# self-contained (no cross-repo Cargo path-dep, no special Docker/CI
+# vendoring, no access tokens required). Run this after modifying any
+# .proto file.
+#
+# Consumers:
+#   - glance_mind_rust    vendor/glance_mind_protocol/           (Rust)
+#   - glance_mind_worker  glance_mind_scheduler/vendor/...       (Rust)
+#   - glance_mind_worker  glance_mind_executor/protocol_gen/     (Python)
+RUST_CONSUMERS := \
+	../glance_mind_rust/vendor/glance_mind_protocol \
+	../glance_mind_worker/glance_mind_scheduler/vendor/glance_mind_protocol
+
+sync: generate-all sync-rust sync-python
+	@echo ""
+	@echo "✓ Synced protocol to all consumer projects."
+	@echo "  Run 'cargo build' in each Rust consumer to regenerate types."
+
+# Sync generated Rust crate (proto/ + generated/rust/) into every consumer
+sync-rust:
+	@for dest in $(RUST_CONSUMERS); do \
+		echo "Syncing Rust protocol crate to $$dest ..."; \
+		mkdir -p $$dest/generated; \
+		rsync -a --delete --exclude=target --exclude=Cargo.lock \
+			generated/rust/ $$dest/generated/rust/; \
+		rsync -a --delete proto/ $$dest/proto/; \
+	done
+	@echo "✓ Rust protocol crate synced to consumers"
+
+# Sync generated Python code to Executor
+sync-python:
 	@echo "Syncing Python types to Executor..."
 	@mkdir -p ../glance_mind_worker/glance_mind_executor/protocol_gen
 	@cp generated/python/glance_mind.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
 	@cp generated/python/__init__.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
 	@echo "✓ Python code synced to executor"
-	@echo ""
-	@echo "Note: Rust consumers (api / scheduler / agent_rs) auto-pick up"
-	@echo "      types via Cargo path-dep on this crate — no copy needed."
-	@echo "      Run 'cargo build' in each consumer to regenerate."
 
-# Sync Python only (without regenerating)
-sync-only:
-	@echo "Syncing existing Python code..."
-	@mkdir -p ../glance_mind_worker/glance_mind_executor/protocol_gen
-	@cp generated/python/glance_mind.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
-	@cp generated/python/__init__.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
-	@echo "✓ Python code synced"
+# Sync without regenerating (use when generated/ is already up to date)
+sync-only: sync-rust sync-python
+	@echo "✓ Synced existing generated code to consumers"
 
 # Clean generated files (be careful!)
 clean:
