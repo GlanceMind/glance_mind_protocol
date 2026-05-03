@@ -5,7 +5,7 @@ in this repository should prefer `contract_static` checks first.
 
 Use:
 
-- `make validate`
+- `make harness-contract`
 - Python protobuf JSON roundtrip tests under `generated/python/`
 
 Do not run sync/codegen commands unless the proto definition is intentionally
