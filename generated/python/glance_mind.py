@@ -3505,3 +3505,134 @@ class AgentTaskEvent:
     @classmethod
     def from_json(cls, json_str: str) -> "AgentTaskEvent":
         return cls.from_dict(json.loads(json_str))
+
+
+class NotificationAction(str, Enum):
+    """Activity notification action (NotificationEvent.action_type).
+
+    Consumers MUST tolerate unknown enum values for forward compatibility
+    (treat as UNKNOWN). New values are appended; existing values never change.
+    """
+    UNKNOWN = "unknown"
+    LIKE = "like"
+    COMMENT = "comment"
+    COMMENT_REPLY = "comment_reply"
+    MENTION = "mention"
+    NEW_FOLLOWER = "new_follower"
+    SHARE = "share"
+    SYSTEM = "system"
+
+
+@dataclass
+class NotificationEvent:
+    """Single notification row scraped from a platform's activity surface.
+
+    Published to NATS subject:  notif.evt.{user_id}
+    Stream:                     NOTIF_EVENTS
+    Dedup key (Nats-Msg-Id):    f"{platform_name}|{tab}|{actor_user_id}|{object_id}|{date_text}"
+    """
+
+    schema_version: int = 1
+    notif_id: str = ""
+    user_id: int = 0
+    social_account_id: int = 0
+    device_id: str = ""
+    platform_id: int = 0
+    platform_name: str = ""
+    profile_name: str = ""
+    action_type: str = "unknown"
+    tab: str = ""
+    actor_user_id: str = ""
+    actor_username: str = ""
+    actor_display_name: str = ""
+    actor_avatar_url: str = ""
+    object_type: str = ""
+    object_id: str = ""
+    object_url: str = ""
+    preview_text: str = ""
+    extra: Dict[str, Any] = field(default_factory=dict)
+    occurred_at_text: str = ""
+    collected_at: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "notif_id": self.notif_id,
+            "user_id": self.user_id,
+            "social_account_id": self.social_account_id,
+            "device_id": self.device_id,
+            "platform_id": self.platform_id,
+            "platform_name": self.platform_name,
+            "profile_name": self.profile_name,
+            "action_type": self.action_type,
+            "tab": self.tab,
+            "actor_user_id": self.actor_user_id,
+            "actor_username": self.actor_username,
+            "actor_display_name": self.actor_display_name,
+            "actor_avatar_url": self.actor_avatar_url,
+            "object_type": self.object_type,
+            "object_id": self.object_id,
+            "object_url": self.object_url,
+            "preview_text": self.preview_text,
+            "extra": dict(self.extra),
+            "occurred_at_text": self.occurred_at_text,
+            "collected_at": self.collected_at,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "NotificationEvent":
+        return cls(
+            schema_version=data.get("schema_version", 1),
+            notif_id=data.get("notif_id", ""),
+            user_id=data.get("user_id", 0),
+            social_account_id=data.get("social_account_id", 0),
+            device_id=data.get("device_id", ""),
+            platform_id=data.get("platform_id", 0),
+            platform_name=data.get("platform_name", ""),
+            profile_name=data.get("profile_name", ""),
+            action_type=data.get("action_type", "unknown"),
+            tab=data.get("tab", ""),
+            actor_user_id=data.get("actor_user_id", ""),
+            actor_username=data.get("actor_username", ""),
+            actor_display_name=data.get("actor_display_name", ""),
+            actor_avatar_url=data.get("actor_avatar_url", ""),
+            object_type=data.get("object_type", ""),
+            object_id=data.get("object_id", ""),
+            object_url=data.get("object_url", ""),
+            preview_text=data.get("preview_text", ""),
+            extra=dict(data.get("extra", {}) or {}),
+            occurred_at_text=data.get("occurred_at_text", ""),
+            collected_at=data.get("collected_at", ""),
+        )
+
+    @classmethod
+    def from_json(cls, s: str) -> "NotificationEvent":
+        return cls.from_dict(json.loads(s))
+
+
+def make_notification_dedup_id(ev: "NotificationEvent") -> str:
+    """Stable Nats-Msg-Id for a NotificationEvent.
+
+    Excludes collected_at (drift across cycles). Falls back to a sha256 of
+    the preview_text when every identifier field is empty so we never emit
+    a constant key like 'tiktok|||' that would collapse unrelated events
+    into one dedup bucket.
+    """
+    import hashlib as _hashlib
+
+    actor = ev.actor_user_id or ev.actor_username or ""
+    obj = ev.object_id or ev.object_url or ""
+    parts = [
+        ev.platform_name or "unknown",
+        ev.tab or "",
+        actor,
+        obj,
+        ev.occurred_at_text or "",
+    ]
+    if not (actor or obj or ev.occurred_at_text):
+        digest = _hashlib.sha256((ev.preview_text or "").encode("utf-8")).hexdigest()[:16]
+        parts.append(f"contenthash:{digest}")
+    return "|".join(parts)
