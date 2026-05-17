@@ -18,6 +18,12 @@
    - 定义在 `proto/device_comments.proto`
    - 优化结构：campaign 配置提取，comments 作为数组
 
+3. **Agent Task 协议** (API / Scheduler / Agent Service / Orchestrator)
+   - 通用异步 agent 任务 envelope、事件和结果格式
+   - 定义在 `proto/agent_task.proto`
+   - `AgentTaskResult.texts` / `images` / `videos` 是 agent 的三类标准输出
+   - `result_json` 保留为业务域兼容载荷，例如 social seed package 或 AIPub domain result
+
 ## 目录结构
 
 ```
@@ -25,6 +31,7 @@ glance_mind_protocol/
 ├── proto/                      # Protocol Buffers 定义
 │   ├── common.proto            # 共享类型定义 (Platform, DataType, etc.)
 │   ├── crawler_task.proto      # Scheduler -> Agent 队列消息
+│   ├── agent_task.proto        # 通用异步 Agent Task 协议
 │   └── device_comments.proto   # API -> Executor REST 响应
 ├── generated/
 │   ├── rust/                   # 生成的 Rust 代码 (prost)

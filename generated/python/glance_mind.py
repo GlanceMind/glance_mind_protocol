@@ -3188,3 +3188,451 @@ class UnifiedAiPubInput:
     @classmethod
     def from_json(cls, json_str: str) -> "UnifiedAiPubInput":
         return cls.from_dict(json.loads(json_str))
+
+
+# ============================================================
+# Generic Agent Task Protocol (from agent_task.proto)
+# API -> DB -> Redis wakeup -> Agent Service -> Orchestrator
+# ============================================================
+
+@dataclass
+class AgentDomainRef:
+    """Business-domain reference preserved by agents and interpreted by orchestrators."""
+    domain: str = ""
+    entity_type: str = ""
+    entity_id: str = ""
+    slot: str = ""
+    on_success: str = ""
+    context_json: str = "{}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "domain": self.domain,
+            "entity_type": self.entity_type,
+            "entity_id": self.entity_id,
+            "slot": self.slot,
+            "on_success": self.on_success,
+            "context_json": self.context_json,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AgentDomainRef":
+        return cls(
+            domain=data.get("domain", ""),
+            entity_type=data.get("entity_type", ""),
+            entity_id=str(data.get("entity_id", "")),
+            slot=data.get("slot", ""),
+            on_success=data.get("on_success", ""),
+            context_json=data.get("context_json", "{}"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "AgentDomainRef":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class AgentTaskEnvelope:
+    """Generic durable agent task envelope."""
+    task_id: str = ""
+    agent_type: str = ""
+    agent_version: str = ""
+    tenant_id: str = ""
+    correlation_id: str = ""
+    idempotency_key: str = ""
+    domain_ref: Optional[AgentDomainRef] = None
+    payload_json: str = "{}"
+    priority: int = 100
+    max_attempts: int = 3
+    traceparent: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "task_id": self.task_id,
+            "agent_type": self.agent_type,
+            "agent_version": self.agent_version,
+            "tenant_id": self.tenant_id,
+            "correlation_id": self.correlation_id,
+            "idempotency_key": self.idempotency_key,
+            "domain_ref": self.domain_ref.to_dict() if self.domain_ref else None,
+            "payload_json": self.payload_json,
+            "priority": self.priority,
+            "max_attempts": self.max_attempts,
+            "traceparent": self.traceparent,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AgentTaskEnvelope":
+        domain_ref = data.get("domain_ref")
+        return cls(
+            task_id=str(data.get("task_id", "")),
+            agent_type=data.get("agent_type", ""),
+            agent_version=data.get("agent_version", ""),
+            tenant_id=data.get("tenant_id", ""),
+            correlation_id=data.get("correlation_id", ""),
+            idempotency_key=data.get("idempotency_key", ""),
+            domain_ref=AgentDomainRef.from_dict(domain_ref) if domain_ref else None,
+            payload_json=data.get("payload_json", "{}"),
+            priority=int(data.get("priority", 100)),
+            max_attempts=int(data.get("max_attempts", 3)),
+            traceparent=data.get("traceparent", ""),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "AgentTaskEnvelope":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class AgentTextOutput:
+    output_id: str = ""
+    role: str = ""
+    title: str = ""
+    body: str = ""
+    format: str = ""
+    language: str = ""
+    metadata_json: str = "{}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "output_id": self.output_id,
+            "role": self.role,
+            "title": self.title,
+            "body": self.body,
+            "format": self.format,
+            "language": self.language,
+            "metadata_json": self.metadata_json,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AgentTextOutput":
+        return cls(
+            output_id=str(data.get("output_id", "")),
+            role=data.get("role", ""),
+            title=data.get("title", ""),
+            body=data.get("body", ""),
+            format=data.get("format", ""),
+            language=data.get("language", ""),
+            metadata_json=data.get("metadata_json", "{}"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "AgentTextOutput":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class AgentImageOutput:
+    output_id: str = ""
+    role: str = ""
+    uri: str = ""
+    mime_type: str = ""
+    width: int = 0
+    height: int = 0
+    prompt: str = ""
+    metadata_json: str = "{}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "output_id": self.output_id,
+            "role": self.role,
+            "uri": self.uri,
+            "mime_type": self.mime_type,
+            "width": self.width,
+            "height": self.height,
+            "prompt": self.prompt,
+            "metadata_json": self.metadata_json,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AgentImageOutput":
+        return cls(
+            output_id=str(data.get("output_id", "")),
+            role=data.get("role", ""),
+            uri=data.get("uri", ""),
+            mime_type=data.get("mime_type", ""),
+            width=int(data.get("width", 0)),
+            height=int(data.get("height", 0)),
+            prompt=data.get("prompt", ""),
+            metadata_json=data.get("metadata_json", "{}"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "AgentImageOutput":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class AgentVideoOutput:
+    output_id: str = ""
+    role: str = ""
+    uri: str = ""
+    mime_type: str = ""
+    width: int = 0
+    height: int = 0
+    duration_seconds: float = 0.0
+    thumbnail_uri: str = ""
+    prompt: str = ""
+    metadata_json: str = "{}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "output_id": self.output_id,
+            "role": self.role,
+            "uri": self.uri,
+            "mime_type": self.mime_type,
+            "width": self.width,
+            "height": self.height,
+            "duration_seconds": self.duration_seconds,
+            "thumbnail_uri": self.thumbnail_uri,
+            "prompt": self.prompt,
+            "metadata_json": self.metadata_json,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AgentVideoOutput":
+        return cls(
+            output_id=str(data.get("output_id", "")),
+            role=data.get("role", ""),
+            uri=data.get("uri", ""),
+            mime_type=data.get("mime_type", ""),
+            width=int(data.get("width", 0)),
+            height=int(data.get("height", 0)),
+            duration_seconds=float(data.get("duration_seconds", 0.0)),
+            thumbnail_uri=data.get("thumbnail_uri", ""),
+            prompt=data.get("prompt", ""),
+            metadata_json=data.get("metadata_json", "{}"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "AgentVideoOutput":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class AgentTaskResult:
+    task_id: str = ""
+    status: str = ""
+    texts: List[AgentTextOutput] = field(default_factory=list)
+    images: List[AgentImageOutput] = field(default_factory=list)
+    videos: List[AgentVideoOutput] = field(default_factory=list)
+    result_json: str = "{}"
+    error_json: str = "{}"
+    metrics_json: str = "{}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "task_id": self.task_id,
+            "status": self.status,
+            "texts": [t.to_dict() for t in self.texts],
+            "images": [i.to_dict() for i in self.images],
+            "videos": [v.to_dict() for v in self.videos],
+            "result_json": self.result_json,
+            "error_json": self.error_json,
+            "metrics_json": self.metrics_json,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AgentTaskResult":
+        return cls(
+            task_id=str(data.get("task_id", "")),
+            status=data.get("status", ""),
+            texts=[AgentTextOutput.from_dict(t) for t in data.get("texts", [])],
+            images=[AgentImageOutput.from_dict(i) for i in data.get("images", [])],
+            videos=[AgentVideoOutput.from_dict(v) for v in data.get("videos", [])],
+            result_json=data.get("result_json", "{}"),
+            error_json=data.get("error_json", "{}"),
+            metrics_json=data.get("metrics_json", "{}"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "AgentTaskResult":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class AgentTaskEvent:
+    event_type: str = ""
+    task_id: str = ""
+    agent_type: str = ""
+    status: str = ""
+    domain_ref: Optional[AgentDomainRef] = None
+    event_json: str = "{}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "event_type": self.event_type,
+            "task_id": self.task_id,
+            "agent_type": self.agent_type,
+            "status": self.status,
+            "domain_ref": self.domain_ref.to_dict() if self.domain_ref else None,
+            "event_json": self.event_json,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AgentTaskEvent":
+        domain_ref = data.get("domain_ref")
+        return cls(
+            event_type=data.get("event_type", ""),
+            task_id=str(data.get("task_id", "")),
+            agent_type=data.get("agent_type", ""),
+            status=data.get("status", ""),
+            domain_ref=AgentDomainRef.from_dict(domain_ref) if domain_ref else None,
+            event_json=data.get("event_json", "{}"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "AgentTaskEvent":
+        return cls.from_dict(json.loads(json_str))
+
+
+class NotificationAction(str, Enum):
+    """Activity notification action (NotificationEvent.action_type).
+
+    Consumers MUST tolerate unknown enum values for forward compatibility
+    (treat as UNKNOWN). New values are appended; existing values never change.
+    """
+    UNKNOWN = "unknown"
+    LIKE = "like"
+    COMMENT = "comment"
+    COMMENT_REPLY = "comment_reply"
+    MENTION = "mention"
+    NEW_FOLLOWER = "new_follower"
+    SHARE = "share"
+    SYSTEM = "system"
+
+
+@dataclass
+class NotificationEvent:
+    """Single notification row scraped from a platform's activity surface.
+
+    Published to NATS subject:  notif.evt.{user_id}
+    Stream:                     NOTIF_EVENTS
+    Dedup key (Nats-Msg-Id):    f"{platform_name}|{tab}|{actor_user_id}|{object_id}|{date_text}"
+    """
+
+    schema_version: int = 1
+    notif_id: str = ""
+    user_id: int = 0
+    social_account_id: int = 0
+    device_id: str = ""
+    platform_id: int = 0
+    platform_name: str = ""
+    profile_name: str = ""
+    action_type: str = "unknown"
+    tab: str = ""
+    actor_user_id: str = ""
+    actor_username: str = ""
+    actor_display_name: str = ""
+    actor_avatar_url: str = ""
+    object_type: str = ""
+    object_id: str = ""
+    object_url: str = ""
+    preview_text: str = ""
+    extra: Dict[str, Any] = field(default_factory=dict)
+    occurred_at_text: str = ""
+    collected_at: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "notif_id": self.notif_id,
+            "user_id": self.user_id,
+            "social_account_id": self.social_account_id,
+            "device_id": self.device_id,
+            "platform_id": self.platform_id,
+            "platform_name": self.platform_name,
+            "profile_name": self.profile_name,
+            "action_type": self.action_type,
+            "tab": self.tab,
+            "actor_user_id": self.actor_user_id,
+            "actor_username": self.actor_username,
+            "actor_display_name": self.actor_display_name,
+            "actor_avatar_url": self.actor_avatar_url,
+            "object_type": self.object_type,
+            "object_id": self.object_id,
+            "object_url": self.object_url,
+            "preview_text": self.preview_text,
+            "extra": dict(self.extra),
+            "occurred_at_text": self.occurred_at_text,
+            "collected_at": self.collected_at,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "NotificationEvent":
+        return cls(
+            schema_version=data.get("schema_version", 1),
+            notif_id=data.get("notif_id", ""),
+            user_id=data.get("user_id", 0),
+            social_account_id=data.get("social_account_id", 0),
+            device_id=data.get("device_id", ""),
+            platform_id=data.get("platform_id", 0),
+            platform_name=data.get("platform_name", ""),
+            profile_name=data.get("profile_name", ""),
+            action_type=data.get("action_type", "unknown"),
+            tab=data.get("tab", ""),
+            actor_user_id=data.get("actor_user_id", ""),
+            actor_username=data.get("actor_username", ""),
+            actor_display_name=data.get("actor_display_name", ""),
+            actor_avatar_url=data.get("actor_avatar_url", ""),
+            object_type=data.get("object_type", ""),
+            object_id=data.get("object_id", ""),
+            object_url=data.get("object_url", ""),
+            preview_text=data.get("preview_text", ""),
+            extra=dict(data.get("extra", {}) or {}),
+            occurred_at_text=data.get("occurred_at_text", ""),
+            collected_at=data.get("collected_at", ""),
+        )
+
+    @classmethod
+    def from_json(cls, s: str) -> "NotificationEvent":
+        return cls.from_dict(json.loads(s))
+
+
+def make_notification_dedup_id(ev: "NotificationEvent") -> str:
+    """Stable Nats-Msg-Id for a NotificationEvent.
+
+    Excludes collected_at (drift across cycles). Falls back to a sha256 of
+    the preview_text when every identifier field is empty so we never emit
+    a constant key like 'tiktok|||' that would collapse unrelated events
+    into one dedup bucket.
+    """
+    import hashlib as _hashlib
+
+    actor = ev.actor_user_id or ev.actor_username or ""
+    obj = ev.object_id or ev.object_url or ""
+    parts = [
+        ev.platform_name or "unknown",
+        ev.tab or "",
+        actor,
+        obj,
+        ev.occurred_at_text or "",
+    ]
+    if not (actor or obj or ev.occurred_at_text):
+        digest = _hashlib.sha256((ev.preview_text or "").encode("utf-8")).hexdigest()[:16]
+        parts.append(f"contenthash:{digest}")
+    return "|".join(parts)

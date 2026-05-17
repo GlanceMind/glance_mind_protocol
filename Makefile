@@ -2,7 +2,7 @@
 # Generates and manages protocol definitions for cross-service communication
 # Protocol definitions are in proto/*.proto (Protocol Buffers)
 
-.PHONY: all generate-all generate-rust generate-python validate sync clean help
+.PHONY: all generate-all generate-rust generate-python validate harness-contract sync clean help
 
 # Default target
 all: generate-all
@@ -28,6 +28,9 @@ validate:
 	@echo "Validating proto files..."
 	@protoc -I=proto --descriptor_set_out=/dev/null proto/*.proto
 	@echo "✓ All proto files valid"
+
+harness-contract: validate generate-python
+	@cd generated/python && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest test_crawler_task_harness_roundtrip.py test_wallet_billing_harness_contract.py -q
 
 # Sync generated code to all consumer projects.
 #
@@ -62,11 +65,14 @@ sync-rust:
 
 # Sync generated Python code to Executor
 sync-python:
-	@echo "Syncing Python types to Executor..."
+	@echo "Syncing Python types to Executor and gm_studio..."
 	@mkdir -p ../glance_mind_worker/glance_mind_executor/protocol_gen
 	@cp generated/python/glance_mind.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
 	@cp generated/python/__init__.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
-	@echo "✓ Python code synced to executor"
+	@mkdir -p ../gm_studio/src/social_seed_workflow/protocol_gen
+	@cp generated/python/glance_mind.py ../gm_studio/src/social_seed_workflow/protocol_gen/
+	@cp generated/python/__init__.py ../gm_studio/src/social_seed_workflow/protocol_gen/
+	@echo "✓ Python code synced to executor and gm_studio"
 
 # Sync without regenerating (use when generated/ is already up to date)
 sync-only: sync-rust sync-python
@@ -88,6 +94,7 @@ help:
 	@echo "  make generate-rust   - Generate/verify Rust code"
 	@echo "  make generate-python - Verify Python code"
 	@echo "  make validate     - Validate proto files syntax"
+	@echo "  make harness-contract - Run harness protocol/static contract checks"
 	@echo "  make sync         - Regenerate and sync to consumer projects"
 	@echo "  make sync-only    - Sync existing code without regenerating"
 	@echo "  make clean        - Remove build artifacts"
