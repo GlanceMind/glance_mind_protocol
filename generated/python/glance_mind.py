@@ -3505,8 +3505,6 @@ class AgentTaskEvent:
     @classmethod
     def from_json(cls, json_str: str) -> "AgentTaskEvent":
         return cls.from_dict(json.loads(json_str))
-<<<<<<< HEAD
-=======
 
 
 class NotificationAction(str, Enum):
@@ -3638,4 +3636,3 @@ def make_notification_dedup_id(ev: "NotificationEvent") -> str:
         digest = _hashlib.sha256((ev.preview_text or "").encode("utf-8")).hexdigest()[:16]
         parts.append(f"contenthash:{digest}")
     return "|".join(parts)
->>>>>>> origin/main
