@@ -265,6 +265,184 @@ impl CommentStatus {
     }
 }
 
+impl OpenMontageProtocolVersion {
+    pub fn to_json_str(&self) -> &'static str {
+        match self {
+            OpenMontageProtocolVersion::Unspecified => "unspecified",
+            OpenMontageProtocolVersion::V1 => "v1",
+        }
+    }
+
+    pub fn from_json_str(s: &str) -> Option<Self> {
+        match s {
+            "v1" => Some(OpenMontageProtocolVersion::V1),
+            "unspecified" => Some(OpenMontageProtocolVersion::Unspecified),
+            _ => None,
+        }
+    }
+}
+
+impl OpenMontageJobStatus {
+    pub fn to_json_str(&self) -> &'static str {
+        match self {
+            OpenMontageJobStatus::Unspecified => "unspecified",
+            OpenMontageJobStatus::Queued => "queued",
+            OpenMontageJobStatus::Preflight => "preflight",
+            OpenMontageJobStatus::AwaitingApproval => "awaiting_approval",
+            OpenMontageJobStatus::Running => "running",
+            OpenMontageJobStatus::Degraded => "degraded",
+            OpenMontageJobStatus::Completed => "completed",
+            OpenMontageJobStatus::Failed => "failed",
+            OpenMontageJobStatus::Cancelled => "cancelled",
+        }
+    }
+
+    pub fn from_json_str(s: &str) -> Option<Self> {
+        match s {
+            "queued" => Some(OpenMontageJobStatus::Queued),
+            "preflight" => Some(OpenMontageJobStatus::Preflight),
+            "awaiting_approval" => Some(OpenMontageJobStatus::AwaitingApproval),
+            "running" => Some(OpenMontageJobStatus::Running),
+            "degraded" => Some(OpenMontageJobStatus::Degraded),
+            "completed" => Some(OpenMontageJobStatus::Completed),
+            "failed" => Some(OpenMontageJobStatus::Failed),
+            "cancelled" => Some(OpenMontageJobStatus::Cancelled),
+            "unspecified" => Some(OpenMontageJobStatus::Unspecified),
+            _ => None,
+        }
+    }
+}
+
+impl OpenMontageEventType {
+    pub fn to_json_str(&self) -> &'static str {
+        match self {
+            OpenMontageEventType::Unspecified => "unspecified",
+            OpenMontageEventType::JobAccepted => "job_accepted",
+            OpenMontageEventType::JobStatusChanged => "job_status_changed",
+            OpenMontageEventType::StageStarted => "stage_started",
+            OpenMontageEventType::StageCheckpointed => "stage_checkpointed",
+            OpenMontageEventType::ApprovalRequired => "approval_required",
+            OpenMontageEventType::ApprovalRecorded => "approval_recorded",
+            OpenMontageEventType::ArtifactReady => "artifact_ready",
+            OpenMontageEventType::JobCompleted => "job_completed",
+            OpenMontageEventType::JobFailed => "job_failed",
+        }
+    }
+
+    pub fn from_json_str(s: &str) -> Option<Self> {
+        match s {
+            "job_accepted" => Some(OpenMontageEventType::JobAccepted),
+            "job_status_changed" => Some(OpenMontageEventType::JobStatusChanged),
+            "stage_started" => Some(OpenMontageEventType::StageStarted),
+            "stage_checkpointed" => Some(OpenMontageEventType::StageCheckpointed),
+            "approval_required" => Some(OpenMontageEventType::ApprovalRequired),
+            "approval_recorded" => Some(OpenMontageEventType::ApprovalRecorded),
+            "artifact_ready" => Some(OpenMontageEventType::ArtifactReady),
+            "job_completed" => Some(OpenMontageEventType::JobCompleted),
+            "job_failed" => Some(OpenMontageEventType::JobFailed),
+            "unspecified" => Some(OpenMontageEventType::Unspecified),
+            _ => None,
+        }
+    }
+}
+
+impl OpenMontageInputAssetKind {
+    pub fn to_json_str(&self) -> &'static str {
+        match self {
+            OpenMontageInputAssetKind::Unspecified => "unspecified",
+            OpenMontageInputAssetKind::ReferenceVideo => "reference_video",
+            OpenMontageInputAssetKind::SourceVideo => "source_video",
+            OpenMontageInputAssetKind::StartFrame => "start_frame",
+            OpenMontageInputAssetKind::EndFrame => "end_frame",
+            OpenMontageInputAssetKind::ReferenceImage => "reference_image",
+            OpenMontageInputAssetKind::BrandAsset => "brand_asset",
+            OpenMontageInputAssetKind::Audio => "audio",
+            OpenMontageInputAssetKind::Subtitle => "subtitle",
+        }
+    }
+
+    pub fn from_json_str(s: &str) -> Option<Self> {
+        match s {
+            "reference_video" => Some(OpenMontageInputAssetKind::ReferenceVideo),
+            "source_video" => Some(OpenMontageInputAssetKind::SourceVideo),
+            "start_frame" => Some(OpenMontageInputAssetKind::StartFrame),
+            "end_frame" => Some(OpenMontageInputAssetKind::EndFrame),
+            "reference_image" => Some(OpenMontageInputAssetKind::ReferenceImage),
+            "brand_asset" => Some(OpenMontageInputAssetKind::BrandAsset),
+            "audio" => Some(OpenMontageInputAssetKind::Audio),
+            "subtitle" => Some(OpenMontageInputAssetKind::Subtitle),
+            "unspecified" => Some(OpenMontageInputAssetKind::Unspecified),
+            _ => None,
+        }
+    }
+}
+
+impl OpenMontageArtifactKind {
+    pub fn to_json_str(&self) -> &'static str {
+        match self {
+            OpenMontageArtifactKind::Unspecified => "unspecified",
+            OpenMontageArtifactKind::Video => "video",
+            OpenMontageArtifactKind::Image => "image",
+            OpenMontageArtifactKind::Audio => "audio",
+            OpenMontageArtifactKind::Subtitle => "subtitle",
+            OpenMontageArtifactKind::Json => "json",
+            OpenMontageArtifactKind::Report => "report",
+            OpenMontageArtifactKind::Directory => "directory",
+        }
+    }
+
+    pub fn from_json_str(s: &str) -> Option<Self> {
+        match s {
+            "video" => Some(OpenMontageArtifactKind::Video),
+            "image" => Some(OpenMontageArtifactKind::Image),
+            "audio" => Some(OpenMontageArtifactKind::Audio),
+            "subtitle" => Some(OpenMontageArtifactKind::Subtitle),
+            "json" => Some(OpenMontageArtifactKind::Json),
+            "report" => Some(OpenMontageArtifactKind::Report),
+            "directory" => Some(OpenMontageArtifactKind::Directory),
+            "unspecified" => Some(OpenMontageArtifactKind::Unspecified),
+            _ => None,
+        }
+    }
+}
+
+impl OpenMontageErrorCode {
+    pub fn to_json_str(&self) -> &'static str {
+        match self {
+            OpenMontageErrorCode::Unspecified => "unspecified",
+            OpenMontageErrorCode::UnsupportedProtocolVersion => "unsupported_protocol_version",
+            OpenMontageErrorCode::ValidationError => "validation_error",
+            OpenMontageErrorCode::SecretMaterialRejected => "secret_material_rejected",
+            OpenMontageErrorCode::IdempotencyConflict => "idempotency_conflict",
+            OpenMontageErrorCode::PipelineNotFound => "pipeline_not_found",
+            OpenMontageErrorCode::ApprovalRequired => "approval_required",
+            OpenMontageErrorCode::ApprovalRejected => "approval_rejected",
+            OpenMontageErrorCode::ProviderUnavailable => "provider_unavailable",
+            OpenMontageErrorCode::RenderFailed => "render_failed",
+            OpenMontageErrorCode::InternalError => "internal_error",
+        }
+    }
+
+    pub fn from_json_str(s: &str) -> Option<Self> {
+        match s {
+            "unsupported_protocol_version" => {
+                Some(OpenMontageErrorCode::UnsupportedProtocolVersion)
+            }
+            "validation_error" => Some(OpenMontageErrorCode::ValidationError),
+            "secret_material_rejected" => Some(OpenMontageErrorCode::SecretMaterialRejected),
+            "idempotency_conflict" => Some(OpenMontageErrorCode::IdempotencyConflict),
+            "pipeline_not_found" => Some(OpenMontageErrorCode::PipelineNotFound),
+            "approval_required" => Some(OpenMontageErrorCode::ApprovalRequired),
+            "approval_rejected" => Some(OpenMontageErrorCode::ApprovalRejected),
+            "provider_unavailable" => Some(OpenMontageErrorCode::ProviderUnavailable),
+            "render_failed" => Some(OpenMontageErrorCode::RenderFailed),
+            "internal_error" => Some(OpenMontageErrorCode::InternalError),
+            "unspecified" => Some(OpenMontageErrorCode::Unspecified),
+            _ => None,
+        }
+    }
+}
+
 // =====================================================================
 // serde adapters for prost-generated enum int fields.
 //
@@ -278,7 +456,11 @@ impl CommentStatus {
 pub mod serde_helpers {
     use serde::{Deserialize, Deserializer, Serializer};
 
-    use super::glance_mind::{CommentStatus, DataType, Platform, TimeRange};
+    use super::glance_mind::{
+        CommentStatus, DataType, OpenMontageArtifactKind, OpenMontageErrorCode,
+        OpenMontageEventType, OpenMontageInputAssetKind, OpenMontageJobStatus,
+        OpenMontageProtocolVersion, Platform, TimeRange,
+    };
 
     macro_rules! impl_enum_string_adapter {
         ($mod_name:ident, $enum_ty:path) => {
@@ -309,6 +491,12 @@ pub mod serde_helpers {
     impl_enum_string_adapter!(data_type, DataType);
     impl_enum_string_adapter!(time_range, TimeRange);
     impl_enum_string_adapter!(comment_status, CommentStatus);
+    impl_enum_string_adapter!(openmontage_protocol_version, OpenMontageProtocolVersion);
+    impl_enum_string_adapter!(openmontage_job_status, OpenMontageJobStatus);
+    impl_enum_string_adapter!(openmontage_event_type, OpenMontageEventType);
+    impl_enum_string_adapter!(openmontage_input_asset_kind, OpenMontageInputAssetKind);
+    impl_enum_string_adapter!(openmontage_artifact_kind, OpenMontageArtifactKind);
+    impl_enum_string_adapter!(openmontage_error_code, OpenMontageErrorCode);
 }
 
 // =====================================================================
@@ -822,5 +1010,143 @@ mod tests {
         assert_eq!(parsed.text_generations.len(), 1);
         assert_eq!(parsed.image_generations.len(), 1);
         assert_eq!(parsed.video_generations.len(), 0);
+    }
+
+    #[test]
+    fn test_openmontage_protocol_professional_video_request_json_uses_strings() {
+        let req = OpenMontageProfessionalVideoRequest {
+            version: OpenMontageProtocolVersion::V1 as i32,
+            request_id: "gm-plan-123-task-456".to_string(),
+            idempotency_key: "gm-openmontage-123-456".to_string(),
+            tenant_id: "tenant-1".to_string(),
+            user_id: "42".to_string(),
+            title: "Launch video".to_string(),
+            prompt: "Create a professional TikTok marketing video.".to_string(),
+            target_platform: "tiktok".to_string(),
+            language: "zh-CN".to_string(),
+            duration_seconds: 30,
+            aspect_ratio: "9:16".to_string(),
+            audience: None,
+            objective: None,
+            brand_json: None,
+            pipeline: "glancemind-marketing-video".to_string(),
+            style_playbook: Some("product-growth".to_string()),
+            render_runtime: Some("remotion".to_string()),
+            quality_tier: "professional".to_string(),
+            approval_policy: "auto_except_paid_provider_switch".to_string(),
+            budget_limit_usd: 3.0,
+            provider_preferences: Default::default(),
+            assets: vec![OpenMontageInputAsset {
+                kind: OpenMontageInputAssetKind::ReferenceImage as i32,
+                role: "brand_reference".to_string(),
+                uri: "https://cdn.example.com/ref.png".to_string(),
+                mime_type: Some("image/png".to_string()),
+                width_px: None,
+                height_px: None,
+                duration_ms: None,
+                metadata_json: None,
+            }],
+            callback: Some(OpenMontageCallbackConfig {
+                callback_url: "https://api.example.com/internal/openmontage/callback".to_string(),
+                callback_secret_ref: "vault://openmontage/callback".to_string(),
+                event_types: vec!["job.completed".to_string()],
+            }),
+            metadata_json: Some(r#"{"glancemind_plan_id":123}"#.to_string()),
+        };
+
+        let json = serde_json::to_string(&req).expect("serialize");
+        assert!(json.contains(r#""version":"v1""#));
+        assert!(json.contains(r#""kind":"reference_image""#));
+        assert!(!json.contains(r#""version":1"#));
+
+        let parsed: OpenMontageProfessionalVideoRequest =
+            serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.version, OpenMontageProtocolVersion::V1 as i32);
+        assert_eq!(
+            parsed.assets[0].kind,
+            OpenMontageInputAssetKind::ReferenceImage as i32
+        );
+    }
+
+    #[test]
+    fn test_openmontage_protocol_job_event_roundtrip() {
+        let event = OpenMontageJobEvent {
+            version: OpenMontageProtocolVersion::V1 as i32,
+            event_id: "evt-1".to_string(),
+            sequence: 7,
+            job: Some(OpenMontageJobRef {
+                job_id: "omx_job_1".to_string(),
+                request_id: "req-1".to_string(),
+                project_id: "project-1".to_string(),
+                correlation_id: "corr-1".to_string(),
+                idempotency_key: "idem-1".to_string(),
+            }),
+            event_type: OpenMontageEventType::JobCompleted as i32,
+            status: OpenMontageJobStatus::Completed as i32,
+            stage: "publish".to_string(),
+            progress_pct: 100,
+            checkpoint: None,
+            approval: None,
+            artifacts: vec![OpenMontageArtifact {
+                artifact_id: "artifact-final-video".to_string(),
+                kind: OpenMontageArtifactKind::Video as i32,
+                role: "primary_video".to_string(),
+                uri: "https://oss.example.com/final.mp4".to_string(),
+                mime_type: Some("video/mp4".to_string()),
+                width_px: Some(1080),
+                height_px: Some(1920),
+                duration_ms: Some(30000),
+                bytes: None,
+                metadata_json: None,
+            }],
+            error: None,
+            event_json: None,
+            emitted_at: "2026-05-27T10:02:00Z".to_string(),
+        };
+
+        let json = serde_json::to_string(&event).expect("serialize");
+        assert!(json.contains(r#""event_type":"job_completed""#));
+        assert!(json.contains(r#""status":"completed""#));
+
+        let parsed: OpenMontageJobEvent = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.sequence, 7);
+        assert_eq!(parsed.event_type, OpenMontageEventType::JobCompleted as i32);
+        assert_eq!(parsed.status, OpenMontageJobStatus::Completed as i32);
+    }
+
+    #[test]
+    fn test_openmontage_protocol_error_code_roundtrip() {
+        let response = OpenMontageSubmitResponse {
+            version: OpenMontageProtocolVersion::V1 as i32,
+            job: Some(OpenMontageJobRef {
+                job_id: "omx_job_1".to_string(),
+                request_id: "req-1".to_string(),
+                project_id: "project-1".to_string(),
+                correlation_id: "corr-1".to_string(),
+                idempotency_key: "idem-1".to_string(),
+            }),
+            status: OpenMontageJobStatus::Failed as i32,
+            accepted_at: "2026-05-27T10:04:00Z".to_string(),
+            status_url: None,
+            next_event_sequence: 3,
+            error: Some(OpenMontageError {
+                code: OpenMontageErrorCode::IdempotencyConflict as i32,
+                message: "idempotency key was reused with a different request body".to_string(),
+                retryable: false,
+                detail_json: Some(r#"{"field":"idempotency_key"}"#.to_string()),
+            }),
+        };
+
+        let json = serde_json::to_string(&response).expect("serialize");
+        assert!(json.contains(r#""status":"failed""#));
+        assert!(json.contains(r#""code":"idempotency_conflict""#));
+
+        let parsed: OpenMontageSubmitResponse =
+            serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed.status, OpenMontageJobStatus::Failed as i32);
+        assert_eq!(
+            parsed.error.expect("error").code,
+            OpenMontageErrorCode::IdempotencyConflict as i32
+        );
     }
 }

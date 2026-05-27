@@ -79,6 +79,21 @@ fn main() -> Result<()> {
         "AgentVideoOutput",
         "AgentTaskResult",
         "AgentTaskEvent",
+        // openmontage.proto
+        "OpenMontageJobRef",
+        "OpenMontageCallbackConfig",
+        "OpenMontageInputAsset",
+        "OpenMontageProfessionalVideoRequest",
+        "OpenMontageError",
+        "OpenMontageSubmitResponse",
+        "OpenMontageArtifact",
+        "OpenMontageStageCheckpoint",
+        "OpenMontageDecision",
+        "OpenMontageApprovalRequest",
+        "OpenMontageApprovalDecision",
+        "OpenMontageJobSnapshot",
+        "OpenMontageJobEvent",
+        "OpenMontageCallbackAck",
     ];
     for m in messages {
         config.type_attribute(
@@ -167,6 +182,54 @@ fn main() -> Result<()> {
             ".glance_mind.UpdateCommentStatusRequest.status",
             "comment_status",
         ),
+        (
+            ".glance_mind.OpenMontageProfessionalVideoRequest.version",
+            "openmontage_protocol_version",
+        ),
+        (
+            ".glance_mind.OpenMontageInputAsset.kind",
+            "openmontage_input_asset_kind",
+        ),
+        (
+            ".glance_mind.OpenMontageError.code",
+            "openmontage_error_code",
+        ),
+        (
+            ".glance_mind.OpenMontageSubmitResponse.version",
+            "openmontage_protocol_version",
+        ),
+        (
+            ".glance_mind.OpenMontageSubmitResponse.status",
+            "openmontage_job_status",
+        ),
+        (
+            ".glance_mind.OpenMontageArtifact.kind",
+            "openmontage_artifact_kind",
+        ),
+        (
+            ".glance_mind.OpenMontageStageCheckpoint.status",
+            "openmontage_job_status",
+        ),
+        (
+            ".glance_mind.OpenMontageJobSnapshot.version",
+            "openmontage_protocol_version",
+        ),
+        (
+            ".glance_mind.OpenMontageJobSnapshot.status",
+            "openmontage_job_status",
+        ),
+        (
+            ".glance_mind.OpenMontageJobEvent.version",
+            "openmontage_protocol_version",
+        ),
+        (
+            ".glance_mind.OpenMontageJobEvent.event_type",
+            "openmontage_event_type",
+        ),
+        (
+            ".glance_mind.OpenMontageJobEvent.status",
+            "openmontage_job_status",
+        ),
     ];
     for (path, module) in string_enum_fields {
         config.field_attribute(
@@ -191,6 +254,7 @@ fn main() -> Result<()> {
             "../../proto/aipub.proto",
             "../../proto/patrol.proto",
             "../../proto/agent_task.proto",
+            "../../proto/openmontage.proto",
         ],
         &["../../proto/"],
     )?;

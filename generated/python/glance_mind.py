@@ -3505,3 +3505,745 @@ class AgentTaskEvent:
     @classmethod
     def from_json(cls, json_str: str) -> "AgentTaskEvent":
         return cls.from_dict(json.loads(json_str))
+
+# ============================================================
+# OpenMontage async professional video protocol
+# ============================================================
+
+class _OpenMontageEnum(str, Enum):
+    @classmethod
+    def from_json(cls, value: Any):
+        if isinstance(value, cls):
+            return value
+        value_str = str(value or "unspecified").lower()
+        for member in cls:
+            if member.value == value_str:
+                return member
+        return cls.UNSPECIFIED
+
+    @classmethod
+    def from_string(cls, value: Any):
+        return cls.from_json(value)
+
+    def to_json(self) -> str:
+        return self.value
+
+
+class OpenMontageProtocolVersion(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    V1 = "v1"
+
+
+class OpenMontageJobStatus(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    QUEUED = "queued"
+    PREFLIGHT = "preflight"
+    AWAITING_APPROVAL = "awaiting_approval"
+    RUNNING = "running"
+    DEGRADED = "degraded"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class OpenMontageEventType(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    JOB_ACCEPTED = "job_accepted"
+    JOB_STATUS_CHANGED = "job_status_changed"
+    STAGE_STARTED = "stage_started"
+    STAGE_CHECKPOINTED = "stage_checkpointed"
+    APPROVAL_REQUIRED = "approval_required"
+    APPROVAL_RECORDED = "approval_recorded"
+    ARTIFACT_READY = "artifact_ready"
+    JOB_COMPLETED = "job_completed"
+    JOB_FAILED = "job_failed"
+
+
+class OpenMontageInputAssetKind(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    REFERENCE_VIDEO = "reference_video"
+    SOURCE_VIDEO = "source_video"
+    START_FRAME = "start_frame"
+    END_FRAME = "end_frame"
+    REFERENCE_IMAGE = "reference_image"
+    BRAND_ASSET = "brand_asset"
+    AUDIO = "audio"
+    SUBTITLE = "subtitle"
+
+
+class OpenMontageArtifactKind(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    VIDEO = "video"
+    IMAGE = "image"
+    AUDIO = "audio"
+    SUBTITLE = "subtitle"
+    JSON = "json"
+    REPORT = "report"
+    DIRECTORY = "directory"
+
+
+class OpenMontageErrorCode(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    UNSUPPORTED_PROTOCOL_VERSION = "unsupported_protocol_version"
+    VALIDATION_ERROR = "validation_error"
+    SECRET_MATERIAL_REJECTED = "secret_material_rejected"
+    IDEMPOTENCY_CONFLICT = "idempotency_conflict"
+    PIPELINE_NOT_FOUND = "pipeline_not_found"
+    APPROVAL_REQUIRED = "approval_required"
+    APPROVAL_REJECTED = "approval_rejected"
+    PROVIDER_UNAVAILABLE = "provider_unavailable"
+    RENDER_FAILED = "render_failed"
+    INTERNAL_ERROR = "internal_error"
+
+
+def _omit_none(data: Dict[str, Any]) -> Dict[str, Any]:
+    return {key: value for key, value in data.items() if value is not None}
+
+
+@dataclass
+class OpenMontageJobRef:
+    job_id: str = ""
+    request_id: str = ""
+    project_id: str = ""
+    correlation_id: str = ""
+    idempotency_key: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "job_id": self.job_id,
+            "request_id": self.request_id,
+            "project_id": self.project_id,
+            "correlation_id": self.correlation_id,
+            "idempotency_key": self.idempotency_key,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageJobRef":
+        return cls(
+            job_id=data.get("job_id", ""),
+            request_id=data.get("request_id", ""),
+            project_id=data.get("project_id", ""),
+            correlation_id=data.get("correlation_id", ""),
+            idempotency_key=data.get("idempotency_key", ""),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageJobRef":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageCallbackConfig:
+    callback_url: str = ""
+    callback_secret_ref: str = ""
+    event_types: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "callback_url": self.callback_url,
+            "callback_secret_ref": self.callback_secret_ref,
+            "event_types": list(self.event_types),
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageCallbackConfig":
+        return cls(
+            callback_url=data.get("callback_url", ""),
+            callback_secret_ref=data.get("callback_secret_ref", ""),
+            event_types=list(data.get("event_types", [])),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageCallbackConfig":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageInputAsset:
+    kind: OpenMontageInputAssetKind = OpenMontageInputAssetKind.UNSPECIFIED
+    role: str = ""
+    uri: str = ""
+    mime_type: Optional[str] = None
+    width_px: Optional[int] = None
+    height_px: Optional[int] = None
+    duration_ms: Optional[int] = None
+    metadata_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "kind": self.kind.value,
+            "role": self.role,
+            "uri": self.uri,
+            "mime_type": self.mime_type,
+            "width_px": self.width_px,
+            "height_px": self.height_px,
+            "duration_ms": self.duration_ms,
+            "metadata_json": self.metadata_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageInputAsset":
+        return cls(
+            kind=OpenMontageInputAssetKind.from_json(data.get("kind")),
+            role=data.get("role", ""),
+            uri=data.get("uri", ""),
+            mime_type=data.get("mime_type"),
+            width_px=data.get("width_px"),
+            height_px=data.get("height_px"),
+            duration_ms=data.get("duration_ms"),
+            metadata_json=data.get("metadata_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageInputAsset":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageProfessionalVideoRequest:
+    version: OpenMontageProtocolVersion = OpenMontageProtocolVersion.UNSPECIFIED
+    request_id: str = ""
+    idempotency_key: str = ""
+    tenant_id: str = ""
+    user_id: str = ""
+    title: str = ""
+    prompt: str = ""
+    target_platform: str = ""
+    language: str = ""
+    duration_seconds: int = 0
+    aspect_ratio: str = ""
+    audience: Optional[str] = None
+    objective: Optional[str] = None
+    brand_json: Optional[str] = None
+    pipeline: str = ""
+    style_playbook: Optional[str] = None
+    render_runtime: Optional[str] = None
+    quality_tier: str = ""
+    approval_policy: str = ""
+    budget_limit_usd: float = 0.0
+    provider_preferences: Dict[str, str] = field(default_factory=dict)
+    assets: List[OpenMontageInputAsset] = field(default_factory=list)
+    callback: Optional[OpenMontageCallbackConfig] = None
+    metadata_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "version": self.version.value,
+            "request_id": self.request_id,
+            "idempotency_key": self.idempotency_key,
+            "tenant_id": self.tenant_id,
+            "user_id": self.user_id,
+            "title": self.title,
+            "prompt": self.prompt,
+            "target_platform": self.target_platform,
+            "language": self.language,
+            "duration_seconds": self.duration_seconds,
+            "aspect_ratio": self.aspect_ratio,
+            "audience": self.audience,
+            "objective": self.objective,
+            "brand_json": self.brand_json,
+            "pipeline": self.pipeline,
+            "style_playbook": self.style_playbook,
+            "render_runtime": self.render_runtime,
+            "quality_tier": self.quality_tier,
+            "approval_policy": self.approval_policy,
+            "budget_limit_usd": self.budget_limit_usd,
+            "provider_preferences": dict(self.provider_preferences),
+            "assets": [asset.to_dict() for asset in self.assets],
+            "callback": self.callback.to_dict() if self.callback else None,
+            "metadata_json": self.metadata_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageProfessionalVideoRequest":
+        callback = data.get("callback")
+        return cls(
+            version=OpenMontageProtocolVersion.from_json(data.get("version")),
+            request_id=data.get("request_id", ""),
+            idempotency_key=data.get("idempotency_key", ""),
+            tenant_id=data.get("tenant_id", ""),
+            user_id=data.get("user_id", ""),
+            title=data.get("title", ""),
+            prompt=data.get("prompt", ""),
+            target_platform=data.get("target_platform", ""),
+            language=data.get("language", ""),
+            duration_seconds=int(data.get("duration_seconds", 0)),
+            aspect_ratio=data.get("aspect_ratio", ""),
+            audience=data.get("audience"),
+            objective=data.get("objective"),
+            brand_json=data.get("brand_json"),
+            pipeline=data.get("pipeline", ""),
+            style_playbook=data.get("style_playbook"),
+            render_runtime=data.get("render_runtime"),
+            quality_tier=data.get("quality_tier", ""),
+            approval_policy=data.get("approval_policy", ""),
+            budget_limit_usd=float(data.get("budget_limit_usd", 0.0)),
+            provider_preferences=dict(data.get("provider_preferences", {}) or {}),
+            assets=[OpenMontageInputAsset.from_dict(v) for v in data.get("assets", [])],
+            callback=OpenMontageCallbackConfig.from_dict(callback) if callback else None,
+            metadata_json=data.get("metadata_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageProfessionalVideoRequest":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageError:
+    code: OpenMontageErrorCode = OpenMontageErrorCode.UNSPECIFIED
+    message: str = ""
+    retryable: bool = False
+    detail_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "code": self.code.value,
+            "message": self.message,
+            "retryable": self.retryable,
+            "detail_json": self.detail_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageError":
+        return cls(
+            code=OpenMontageErrorCode.from_json(data.get("code")),
+            message=data.get("message", ""),
+            retryable=bool(data.get("retryable", False)),
+            detail_json=data.get("detail_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageError":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageSubmitResponse:
+    version: OpenMontageProtocolVersion = OpenMontageProtocolVersion.UNSPECIFIED
+    job: Optional[OpenMontageJobRef] = None
+    status: OpenMontageJobStatus = OpenMontageJobStatus.UNSPECIFIED
+    accepted_at: str = ""
+    status_url: Optional[str] = None
+    next_event_sequence: int = 0
+    error: Optional[OpenMontageError] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "version": self.version.value,
+            "job": self.job.to_dict() if self.job else None,
+            "status": self.status.value,
+            "accepted_at": self.accepted_at,
+            "status_url": self.status_url,
+            "next_event_sequence": self.next_event_sequence,
+            "error": self.error.to_dict() if self.error else None,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageSubmitResponse":
+        job = data.get("job")
+        error = data.get("error")
+        return cls(
+            version=OpenMontageProtocolVersion.from_json(data.get("version")),
+            job=OpenMontageJobRef.from_dict(job) if job else None,
+            status=OpenMontageJobStatus.from_json(data.get("status")),
+            accepted_at=data.get("accepted_at", ""),
+            status_url=data.get("status_url"),
+            next_event_sequence=int(data.get("next_event_sequence", 0)),
+            error=OpenMontageError.from_dict(error) if error else None,
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageSubmitResponse":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageArtifact:
+    artifact_id: str = ""
+    kind: OpenMontageArtifactKind = OpenMontageArtifactKind.UNSPECIFIED
+    role: str = ""
+    uri: str = ""
+    mime_type: Optional[str] = None
+    width_px: Optional[int] = None
+    height_px: Optional[int] = None
+    duration_ms: Optional[int] = None
+    bytes: Optional[int] = None
+    metadata_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "artifact_id": self.artifact_id,
+            "kind": self.kind.value,
+            "role": self.role,
+            "uri": self.uri,
+            "mime_type": self.mime_type,
+            "width_px": self.width_px,
+            "height_px": self.height_px,
+            "duration_ms": self.duration_ms,
+            "bytes": self.bytes,
+            "metadata_json": self.metadata_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageArtifact":
+        return cls(
+            artifact_id=data.get("artifact_id", ""),
+            kind=OpenMontageArtifactKind.from_json(data.get("kind")),
+            role=data.get("role", ""),
+            uri=data.get("uri", ""),
+            mime_type=data.get("mime_type"),
+            width_px=data.get("width_px"),
+            height_px=data.get("height_px"),
+            duration_ms=data.get("duration_ms"),
+            bytes=data.get("bytes"),
+            metadata_json=data.get("metadata_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageArtifact":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageStageCheckpoint:
+    sequence: int = 0
+    stage: str = ""
+    status: OpenMontageJobStatus = OpenMontageJobStatus.UNSPECIFIED
+    summary: str = ""
+    artifact_refs: List[str] = field(default_factory=list)
+    cost_snapshot_json: Optional[str] = None
+    review_json: Optional[str] = None
+    created_at: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "sequence": self.sequence,
+            "stage": self.stage,
+            "status": self.status.value,
+            "summary": self.summary,
+            "artifact_refs": list(self.artifact_refs),
+            "cost_snapshot_json": self.cost_snapshot_json,
+            "review_json": self.review_json,
+            "created_at": self.created_at,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageStageCheckpoint":
+        return cls(
+            sequence=int(data.get("sequence", 0)),
+            stage=data.get("stage", ""),
+            status=OpenMontageJobStatus.from_json(data.get("status")),
+            summary=data.get("summary", ""),
+            artifact_refs=list(data.get("artifact_refs", [])),
+            cost_snapshot_json=data.get("cost_snapshot_json"),
+            review_json=data.get("review_json"),
+            created_at=data.get("created_at", ""),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageStageCheckpoint":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageDecision:
+    sequence: int = 0
+    category: str = ""
+    summary: str = ""
+    selected_option: Optional[str] = None
+    options_json: Optional[str] = None
+    confidence: Optional[str] = None
+    created_at: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "sequence": self.sequence,
+            "category": self.category,
+            "summary": self.summary,
+            "selected_option": self.selected_option,
+            "options_json": self.options_json,
+            "confidence": self.confidence,
+            "created_at": self.created_at,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageDecision":
+        return cls(
+            sequence=int(data.get("sequence", 0)),
+            category=data.get("category", ""),
+            summary=data.get("summary", ""),
+            selected_option=data.get("selected_option"),
+            options_json=data.get("options_json"),
+            confidence=data.get("confidence"),
+            created_at=data.get("created_at", ""),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageDecision":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageApprovalRequest:
+    approval_id: str = ""
+    stage: str = ""
+    decision_category: str = ""
+    prompt: str = ""
+    options_json: Optional[str] = None
+    expires_at: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "approval_id": self.approval_id,
+            "stage": self.stage,
+            "decision_category": self.decision_category,
+            "prompt": self.prompt,
+            "options_json": self.options_json,
+            "expires_at": self.expires_at,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageApprovalRequest":
+        return cls(
+            approval_id=data.get("approval_id", ""),
+            stage=data.get("stage", ""),
+            decision_category=data.get("decision_category", ""),
+            prompt=data.get("prompt", ""),
+            options_json=data.get("options_json"),
+            expires_at=data.get("expires_at"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageApprovalRequest":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageApprovalDecision:
+    job_id: str = ""
+    approval_id: str = ""
+    actor_id: str = ""
+    decision: str = ""
+    comment: Optional[str] = None
+    decided_at: str = ""
+    metadata_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "job_id": self.job_id,
+            "approval_id": self.approval_id,
+            "actor_id": self.actor_id,
+            "decision": self.decision,
+            "comment": self.comment,
+            "decided_at": self.decided_at,
+            "metadata_json": self.metadata_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageApprovalDecision":
+        return cls(
+            job_id=data.get("job_id", ""),
+            approval_id=data.get("approval_id", ""),
+            actor_id=data.get("actor_id", ""),
+            decision=data.get("decision", ""),
+            comment=data.get("comment"),
+            decided_at=data.get("decided_at", ""),
+            metadata_json=data.get("metadata_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageApprovalDecision":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageJobSnapshot:
+    version: OpenMontageProtocolVersion = OpenMontageProtocolVersion.UNSPECIFIED
+    job: Optional[OpenMontageJobRef] = None
+    status: OpenMontageJobStatus = OpenMontageJobStatus.UNSPECIFIED
+    pipeline: str = ""
+    current_stage: str = ""
+    progress_pct: int = 0
+    checkpoints: List[OpenMontageStageCheckpoint] = field(default_factory=list)
+    decisions: List[OpenMontageDecision] = field(default_factory=list)
+    approvals: List[OpenMontageApprovalRequest] = field(default_factory=list)
+    artifacts: List[OpenMontageArtifact] = field(default_factory=list)
+    error: Optional[OpenMontageError] = None
+    metrics_json: Optional[str] = None
+    updated_at: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "version": self.version.value,
+            "job": self.job.to_dict() if self.job else None,
+            "status": self.status.value,
+            "pipeline": self.pipeline,
+            "current_stage": self.current_stage,
+            "progress_pct": self.progress_pct,
+            "checkpoints": [v.to_dict() for v in self.checkpoints],
+            "decisions": [v.to_dict() for v in self.decisions],
+            "approvals": [v.to_dict() for v in self.approvals],
+            "artifacts": [v.to_dict() for v in self.artifacts],
+            "error": self.error.to_dict() if self.error else None,
+            "metrics_json": self.metrics_json,
+            "updated_at": self.updated_at,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageJobSnapshot":
+        job = data.get("job")
+        error = data.get("error")
+        return cls(
+            version=OpenMontageProtocolVersion.from_json(data.get("version")),
+            job=OpenMontageJobRef.from_dict(job) if job else None,
+            status=OpenMontageJobStatus.from_json(data.get("status")),
+            pipeline=data.get("pipeline", ""),
+            current_stage=data.get("current_stage", ""),
+            progress_pct=int(data.get("progress_pct", 0)),
+            checkpoints=[OpenMontageStageCheckpoint.from_dict(v) for v in data.get("checkpoints", [])],
+            decisions=[OpenMontageDecision.from_dict(v) for v in data.get("decisions", [])],
+            approvals=[OpenMontageApprovalRequest.from_dict(v) for v in data.get("approvals", [])],
+            artifacts=[OpenMontageArtifact.from_dict(v) for v in data.get("artifacts", [])],
+            error=OpenMontageError.from_dict(error) if error else None,
+            metrics_json=data.get("metrics_json"),
+            updated_at=data.get("updated_at", ""),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageJobSnapshot":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageJobEvent:
+    version: OpenMontageProtocolVersion = OpenMontageProtocolVersion.UNSPECIFIED
+    event_id: str = ""
+    sequence: int = 0
+    job: Optional[OpenMontageJobRef] = None
+    event_type: OpenMontageEventType = OpenMontageEventType.UNSPECIFIED
+    status: OpenMontageJobStatus = OpenMontageJobStatus.UNSPECIFIED
+    stage: str = ""
+    progress_pct: int = 0
+    checkpoint: Optional[OpenMontageStageCheckpoint] = None
+    approval: Optional[OpenMontageApprovalRequest] = None
+    artifacts: List[OpenMontageArtifact] = field(default_factory=list)
+    error: Optional[OpenMontageError] = None
+    event_json: Optional[str] = None
+    emitted_at: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "version": self.version.value,
+            "event_id": self.event_id,
+            "sequence": self.sequence,
+            "job": self.job.to_dict() if self.job else None,
+            "event_type": self.event_type.value,
+            "status": self.status.value,
+            "stage": self.stage,
+            "progress_pct": self.progress_pct,
+            "checkpoint": self.checkpoint.to_dict() if self.checkpoint else None,
+            "approval": self.approval.to_dict() if self.approval else None,
+            "artifacts": [v.to_dict() for v in self.artifacts],
+            "error": self.error.to_dict() if self.error else None,
+            "event_json": self.event_json,
+            "emitted_at": self.emitted_at,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageJobEvent":
+        job = data.get("job")
+        checkpoint = data.get("checkpoint")
+        approval = data.get("approval")
+        error = data.get("error")
+        return cls(
+            version=OpenMontageProtocolVersion.from_json(data.get("version")),
+            event_id=data.get("event_id", ""),
+            sequence=int(data.get("sequence", 0)),
+            job=OpenMontageJobRef.from_dict(job) if job else None,
+            event_type=OpenMontageEventType.from_json(data.get("event_type")),
+            status=OpenMontageJobStatus.from_json(data.get("status")),
+            stage=data.get("stage", ""),
+            progress_pct=int(data.get("progress_pct", 0)),
+            checkpoint=OpenMontageStageCheckpoint.from_dict(checkpoint) if checkpoint else None,
+            approval=OpenMontageApprovalRequest.from_dict(approval) if approval else None,
+            artifacts=[OpenMontageArtifact.from_dict(v) for v in data.get("artifacts", [])],
+            error=OpenMontageError.from_dict(error) if error else None,
+            event_json=data.get("event_json"),
+            emitted_at=data.get("emitted_at", ""),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageJobEvent":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageCallbackAck:
+    received: bool = False
+    event_id: str = ""
+    next_expected_sequence: int = 0
+    message: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "received": self.received,
+            "event_id": self.event_id,
+            "next_expected_sequence": self.next_expected_sequence,
+            "message": self.message,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageCallbackAck":
+        return cls(
+            received=bool(data.get("received", False)),
+            event_id=data.get("event_id", ""),
+            next_expected_sequence=int(data.get("next_expected_sequence", 0)),
+            message=data.get("message"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageCallbackAck":
+        return cls.from_dict(json.loads(json_str))
