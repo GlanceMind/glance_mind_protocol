@@ -1221,8 +1221,8 @@ mod tests {
         let json = serde_json::to_string(&event).expect("serialize");
         assert!(json.contains(r#""event_type":"job_completed""#));
         assert!(json.contains(r#""status":"completed""#));
-        assert!(!json.contains(r#""event_type":4"#));
-        assert!(!json.contains(r#""status":2"#));
+        assert!(!json.contains(r#""event_type":8"#));
+        assert!(!json.contains(r#""status":6"#));
 
         let parsed: OpenMontageJobEvent = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(parsed.sequence, 7);
