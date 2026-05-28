@@ -27,6 +27,8 @@
 4. **OpenMontage 专业视频协议** (Rust API <-> OpenMontage)
    - 异步专业视频生产任务、状态快照、事件回调、审批决策和产物格式
    - 定义在 `proto/openmontage.proto`
+   - 覆盖 OpenMontage 内部 tool contract、provider invocation/result、pipeline manifest、checkpoint、artifact payload 与 preflight snapshot
+   - 字段级覆盖矩阵见 `docs/openmontage-api-coverage.md`
    - JSON wire 使用 snake_case 字段和字符串枚举，例如 `"status": "completed"`
 
 ## 目录结构
