@@ -24,6 +24,13 @@
    - `AgentTaskResult.texts` / `images` / `videos` 是 agent 的三类标准输出
    - `result_json` 保留为业务域兼容载荷，例如 social seed package 或 AIPub domain result
 
+4. **OpenMontage 专业视频协议** (Rust API <-> OpenMontage)
+   - 异步专业视频生产任务、状态快照、事件回调、审批决策和产物格式
+   - 定义在 `proto/openmontage.proto`
+   - 覆盖 OpenMontage 内部 tool contract、provider invocation/result、pipeline manifest、checkpoint、artifact payload 与 preflight snapshot
+   - 字段级覆盖矩阵见 `docs/openmontage-api-coverage.md`
+   - JSON wire 使用 snake_case 字段和字符串枚举，例如 `"status": "completed"`
+
 ## 目录结构
 
 ```
@@ -32,6 +39,7 @@ glance_mind_protocol/
 │   ├── common.proto            # 共享类型定义 (Platform, DataType, etc.)
 │   ├── crawler_task.proto      # Scheduler -> Agent 队列消息
 │   ├── agent_task.proto        # 通用异步 Agent Task 协议
+│   ├── openmontage.proto       # OpenMontage 异步专业视频协议
 │   └── device_comments.proto   # API -> Executor REST 响应
 ├── generated/
 │   ├── rust/                   # 生成的 Rust 代码 (prost)

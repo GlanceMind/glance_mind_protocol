@@ -3507,6 +3507,1758 @@ class AgentTaskEvent:
         return cls.from_dict(json.loads(json_str))
 
 
+# ============================================================
+# OpenMontage async professional video protocol
+# ============================================================
+
+class _OpenMontageEnum(str, Enum):
+    @classmethod
+    def from_json(cls, value: Any):
+        if isinstance(value, cls):
+            return value
+        value_str = str(value or "unspecified").lower()
+        for member in cls:
+            if member.value == value_str:
+                return member
+        return cls.UNSPECIFIED
+
+    @classmethod
+    def from_string(cls, value: Any):
+        return cls.from_json(value)
+
+    def to_json(self) -> str:
+        return self.value
+
+
+class OpenMontageProtocolVersion(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    V1 = "v1"
+
+
+class OpenMontageJobStatus(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    QUEUED = "queued"
+    PREFLIGHT = "preflight"
+    AWAITING_APPROVAL = "awaiting_approval"
+    RUNNING = "running"
+    DEGRADED = "degraded"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    IN_PROGRESS = "in_progress"
+    AWAITING_HUMAN = "awaiting_human"
+
+
+class OpenMontageEventType(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    JOB_ACCEPTED = "job_accepted"
+    JOB_STATUS_CHANGED = "job_status_changed"
+    STAGE_STARTED = "stage_started"
+    STAGE_CHECKPOINTED = "stage_checkpointed"
+    APPROVAL_REQUIRED = "approval_required"
+    APPROVAL_RECORDED = "approval_recorded"
+    ARTIFACT_READY = "artifact_ready"
+    JOB_COMPLETED = "job_completed"
+    JOB_FAILED = "job_failed"
+    PREFLIGHT_COMPLETED = "preflight_completed"
+    PIPELINE_MANIFEST_READY = "pipeline_manifest_ready"
+    TOOL_STARTED = "tool_started"
+    TOOL_COMPLETED = "tool_completed"
+    TOOL_FAILED = "tool_failed"
+    CHECKPOINT_VALIDATED = "checkpoint_validated"
+    ARTIFACT_VALIDATED = "artifact_validated"
+    PROVIDER_BLOCKED = "provider_blocked"
+
+
+class OpenMontageInputAssetKind(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    REFERENCE_VIDEO = "reference_video"
+    SOURCE_VIDEO = "source_video"
+    START_FRAME = "start_frame"
+    END_FRAME = "end_frame"
+    REFERENCE_IMAGE = "reference_image"
+    BRAND_ASSET = "brand_asset"
+    AUDIO = "audio"
+    SUBTITLE = "subtitle"
+    NARRATION = "narration"
+    MUSIC = "music"
+    SFX = "sfx"
+    DIAGRAM = "diagram"
+    ANIMATION = "animation"
+    CODE_SNIPPET = "code_snippet"
+    FONT = "font"
+    LUT = "lut"
+
+
+class OpenMontageArtifactKind(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    VIDEO = "video"
+    IMAGE = "image"
+    AUDIO = "audio"
+    SUBTITLE = "subtitle"
+    JSON = "json"
+    REPORT = "report"
+    DIRECTORY = "directory"
+    NARRATION = "narration"
+    MUSIC = "music"
+    SFX = "sfx"
+    DIAGRAM = "diagram"
+    ANIMATION = "animation"
+    CODE_SNIPPET = "code_snippet"
+    FONT = "font"
+    LUT = "lut"
+    REVIEW = "review"
+    CHECKPOINT = "checkpoint"
+    MANIFEST = "manifest"
+
+
+class OpenMontageErrorCode(_OpenMontageEnum):
+    UNSPECIFIED = "unspecified"
+    UNSUPPORTED_PROTOCOL_VERSION = "unsupported_protocol_version"
+    VALIDATION_ERROR = "validation_error"
+    SECRET_MATERIAL_REJECTED = "secret_material_rejected"
+    IDEMPOTENCY_CONFLICT = "idempotency_conflict"
+    PIPELINE_NOT_FOUND = "pipeline_not_found"
+    APPROVAL_REQUIRED = "approval_required"
+    APPROVAL_REJECTED = "approval_rejected"
+    PROVIDER_UNAVAILABLE = "provider_unavailable"
+    RENDER_FAILED = "render_failed"
+    INTERNAL_ERROR = "internal_error"
+    TOOL_NOT_FOUND = "tool_not_found"
+    TOOL_VALIDATION_ERROR = "tool_validation_error"
+    CHECKPOINT_VALIDATION_ERROR = "checkpoint_validation_error"
+    ARTIFACT_VALIDATION_ERROR = "artifact_validation_error"
+    RUNTIME_UNAVAILABLE = "runtime_unavailable"
+    BUDGET_EXCEEDED = "budget_exceeded"
+    LIVE_PROVIDER_NOT_APPROVED = "live_provider_not_approved"
+
+
+def _omit_none(data: Dict[str, Any]) -> Dict[str, Any]:
+    return {key: value for key, value in data.items() if value is not None}
+
+
+@dataclass
+class OpenMontageJobRef:
+    job_id: str = ""
+    request_id: str = ""
+    project_id: str = ""
+    correlation_id: str = ""
+    idempotency_key: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "job_id": self.job_id,
+            "request_id": self.request_id,
+            "project_id": self.project_id,
+            "correlation_id": self.correlation_id,
+            "idempotency_key": self.idempotency_key,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageJobRef":
+        return cls(
+            job_id=data.get("job_id", ""),
+            request_id=data.get("request_id", ""),
+            project_id=data.get("project_id", ""),
+            correlation_id=data.get("correlation_id", ""),
+            idempotency_key=data.get("idempotency_key", ""),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageJobRef":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageCallbackConfig:
+    callback_url: str = ""
+    callback_secret_ref: str = ""
+    event_types: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "callback_url": self.callback_url,
+            "callback_secret_ref": self.callback_secret_ref,
+            "event_types": list(self.event_types),
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageCallbackConfig":
+        return cls(
+            callback_url=data.get("callback_url", ""),
+            callback_secret_ref=data.get("callback_secret_ref", ""),
+            event_types=list(data.get("event_types", [])),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageCallbackConfig":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageInputAsset:
+    kind: OpenMontageInputAssetKind = OpenMontageInputAssetKind.UNSPECIFIED
+    role: str = ""
+    uri: str = ""
+    mime_type: Optional[str] = None
+    width_px: Optional[int] = None
+    height_px: Optional[int] = None
+    duration_ms: Optional[int] = None
+    metadata_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "kind": self.kind.value,
+            "role": self.role,
+            "uri": self.uri,
+            "mime_type": self.mime_type,
+            "width_px": self.width_px,
+            "height_px": self.height_px,
+            "duration_ms": self.duration_ms,
+            "metadata_json": self.metadata_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageInputAsset":
+        return cls(
+            kind=OpenMontageInputAssetKind.from_json(data.get("kind")),
+            role=data.get("role", ""),
+            uri=data.get("uri", ""),
+            mime_type=data.get("mime_type"),
+            width_px=data.get("width_px"),
+            height_px=data.get("height_px"),
+            duration_ms=data.get("duration_ms"),
+            metadata_json=data.get("metadata_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageInputAsset":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageSchemaField:
+    path: str = ""
+    required: bool = False
+    json_type: str = ""
+    enum_values: List[str] = field(default_factory=list)
+    default_json: Optional[str] = None
+    description: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "path": self.path,
+            "required": self.required,
+            "json_type": self.json_type,
+            "enum_values": list(self.enum_values),
+            "default_json": self.default_json,
+            "description": self.description,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageSchemaField":
+        return cls(
+            path=data.get("path", ""),
+            required=bool(data.get("required", False)),
+            json_type=data.get("json_type", ""),
+            enum_values=list(data.get("enum_values", [])),
+            default_json=data.get("default_json"),
+            description=data.get("description"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageSchemaField":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageResourceProfile:
+    cpu_cores: int = 0
+    ram_mb: int = 0
+    vram_mb: int = 0
+    disk_mb: int = 0
+    network_required: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "cpu_cores": self.cpu_cores,
+            "ram_mb": self.ram_mb,
+            "vram_mb": self.vram_mb,
+            "disk_mb": self.disk_mb,
+            "network_required": self.network_required,
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageResourceProfile":
+        return cls(
+            cpu_cores=int(data.get("cpu_cores", 0)),
+            ram_mb=int(data.get("ram_mb", 0)),
+            vram_mb=int(data.get("vram_mb", 0)),
+            disk_mb=int(data.get("disk_mb", 0)),
+            network_required=bool(data.get("network_required", False)),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageResourceProfile":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageRetryPolicy:
+    max_retries: int = 0
+    backoff_seconds: float = 0.0
+    retryable_errors: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "max_retries": self.max_retries,
+            "backoff_seconds": self.backoff_seconds,
+            "retryable_errors": list(self.retryable_errors),
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageRetryPolicy":
+        return cls(
+            max_retries=int(data.get("max_retries", 0)),
+            backoff_seconds=float(data.get("backoff_seconds", 0.0)),
+            retryable_errors=list(data.get("retryable_errors", [])),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageRetryPolicy":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageToolContract:
+    name: str = ""
+    version: str = ""
+    tier: str = ""
+    capability: str = ""
+    provider: str = ""
+    stability: str = ""
+    status: str = ""
+    execution_mode: str = ""
+    determinism: str = ""
+    runtime: str = ""
+    module_path: str = ""
+    usage_location: str = ""
+    dependencies: List[str] = field(default_factory=list)
+    install_instructions: str = ""
+    capabilities: List[str] = field(default_factory=list)
+    input_fields: List[OpenMontageSchemaField] = field(default_factory=list)
+    output_fields: List[OpenMontageSchemaField] = field(default_factory=list)
+    input_schema_json: Optional[str] = None
+    output_schema_json: Optional[str] = None
+    artifact_schema_json: Optional[str] = None
+    progress_schema_json: Optional[str] = None
+    supports_json: Optional[str] = None
+    best_for: List[str] = field(default_factory=list)
+    not_good_for: List[str] = field(default_factory=list)
+    provider_matrix_json: Optional[str] = None
+    resource_profile: Optional[OpenMontageResourceProfile] = None
+    retry_policy: Optional[OpenMontageRetryPolicy] = None
+    resume_support: str = ""
+    side_effects: List[str] = field(default_factory=list)
+    fallback: Optional[str] = None
+    fallback_tools: List[str] = field(default_factory=list)
+    agent_skills: List[str] = field(default_factory=list)
+    user_visible_verification: List[str] = field(default_factory=list)
+    quality_score: Optional[float] = None
+    historical_success_rate: Optional[float] = None
+    latency_p50_seconds: Optional[float] = None
+    render_engines_json: Optional[str] = None
+    render_runtimes_json: Optional[str] = None
+    remotion_note: Optional[str] = None
+    hyperframes_note: Optional[str] = None
+    runtime_governance: Optional[str] = None
+    raw_info_json: Optional[str] = None
+    related_skills: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "name": self.name,
+            "version": self.version,
+            "tier": self.tier,
+            "capability": self.capability,
+            "provider": self.provider,
+            "stability": self.stability,
+            "status": self.status,
+            "execution_mode": self.execution_mode,
+            "determinism": self.determinism,
+            "runtime": self.runtime,
+            "module_path": self.module_path,
+            "usage_location": self.usage_location,
+            "dependencies": list(self.dependencies),
+            "install_instructions": self.install_instructions,
+            "capabilities": list(self.capabilities),
+            "input_fields": [v.to_dict() for v in self.input_fields],
+            "output_fields": [v.to_dict() for v in self.output_fields],
+            "input_schema_json": self.input_schema_json,
+            "output_schema_json": self.output_schema_json,
+            "artifact_schema_json": self.artifact_schema_json,
+            "progress_schema_json": self.progress_schema_json,
+            "supports_json": self.supports_json,
+            "best_for": list(self.best_for),
+            "not_good_for": list(self.not_good_for),
+            "provider_matrix_json": self.provider_matrix_json,
+            "resource_profile": self.resource_profile.to_dict() if self.resource_profile else None,
+            "retry_policy": self.retry_policy.to_dict() if self.retry_policy else None,
+            "resume_support": self.resume_support,
+            "side_effects": list(self.side_effects),
+            "fallback": self.fallback,
+            "fallback_tools": list(self.fallback_tools),
+            "agent_skills": list(self.agent_skills),
+            "user_visible_verification": list(self.user_visible_verification),
+            "quality_score": self.quality_score,
+            "historical_success_rate": self.historical_success_rate,
+            "latency_p50_seconds": self.latency_p50_seconds,
+            "render_engines_json": self.render_engines_json,
+            "render_runtimes_json": self.render_runtimes_json,
+            "remotion_note": self.remotion_note,
+            "hyperframes_note": self.hyperframes_note,
+            "runtime_governance": self.runtime_governance,
+            "raw_info_json": self.raw_info_json,
+            "related_skills": list(self.related_skills),
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageToolContract":
+        rp = data.get("resource_profile")
+        retry = data.get("retry_policy")
+        return cls(
+            name=data.get("name", ""),
+            version=data.get("version", ""),
+            tier=data.get("tier", ""),
+            capability=data.get("capability", ""),
+            provider=data.get("provider", ""),
+            stability=data.get("stability", ""),
+            status=data.get("status", ""),
+            execution_mode=data.get("execution_mode", ""),
+            determinism=data.get("determinism", ""),
+            runtime=data.get("runtime", ""),
+            module_path=data.get("module_path", ""),
+            usage_location=data.get("usage_location", ""),
+            dependencies=list(data.get("dependencies", [])),
+            install_instructions=data.get("install_instructions", ""),
+            capabilities=list(data.get("capabilities", [])),
+            input_fields=[OpenMontageSchemaField.from_dict(v) for v in data.get("input_fields", [])],
+            output_fields=[OpenMontageSchemaField.from_dict(v) for v in data.get("output_fields", [])],
+            input_schema_json=data.get("input_schema_json"),
+            output_schema_json=data.get("output_schema_json"),
+            artifact_schema_json=data.get("artifact_schema_json"),
+            progress_schema_json=data.get("progress_schema_json"),
+            supports_json=data.get("supports_json"),
+            best_for=list(data.get("best_for", [])),
+            not_good_for=list(data.get("not_good_for", [])),
+            provider_matrix_json=data.get("provider_matrix_json"),
+            resource_profile=OpenMontageResourceProfile.from_dict(rp) if rp else None,
+            retry_policy=OpenMontageRetryPolicy.from_dict(retry) if retry else None,
+            resume_support=data.get("resume_support", ""),
+            side_effects=list(data.get("side_effects", [])),
+            fallback=data.get("fallback"),
+            fallback_tools=list(data.get("fallback_tools", [])),
+            agent_skills=list(data.get("agent_skills", [])),
+            user_visible_verification=list(data.get("user_visible_verification", [])),
+            quality_score=data.get("quality_score"),
+            historical_success_rate=data.get("historical_success_rate"),
+            latency_p50_seconds=data.get("latency_p50_seconds"),
+            render_engines_json=data.get("render_engines_json"),
+            render_runtimes_json=data.get("render_runtimes_json"),
+            remotion_note=data.get("remotion_note"),
+            hyperframes_note=data.get("hyperframes_note"),
+            runtime_governance=data.get("runtime_governance"),
+            raw_info_json=data.get("raw_info_json"),
+            related_skills=list(data.get("related_skills", [])),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageToolContract":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageToolInvocation:
+    invocation_id: str = ""
+    stage: str = ""
+    tool_name: str = ""
+    role: str = ""
+    operation: str = ""
+    provider: str = ""
+    capability: str = ""
+    input_json: str = "{}"
+    idempotency_key: Optional[str] = None
+    max_cost_usd: Optional[float] = None
+    dry_run: bool = False
+    expected_artifact_roles: List[str] = field(default_factory=list)
+    contract_version: Optional[str] = None
+    metadata_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "invocation_id": self.invocation_id,
+            "stage": self.stage,
+            "tool_name": self.tool_name,
+            "role": self.role,
+            "operation": self.operation,
+            "provider": self.provider,
+            "capability": self.capability,
+            "input_json": self.input_json,
+            "idempotency_key": self.idempotency_key,
+            "max_cost_usd": self.max_cost_usd,
+            "dry_run": self.dry_run,
+            "expected_artifact_roles": list(self.expected_artifact_roles),
+            "contract_version": self.contract_version,
+            "metadata_json": self.metadata_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageToolInvocation":
+        return cls(
+            invocation_id=data.get("invocation_id", ""),
+            stage=data.get("stage", ""),
+            tool_name=data.get("tool_name", ""),
+            role=data.get("role", ""),
+            operation=data.get("operation", ""),
+            provider=data.get("provider", ""),
+            capability=data.get("capability", ""),
+            input_json=data.get("input_json", "{}"),
+            idempotency_key=data.get("idempotency_key"),
+            max_cost_usd=data.get("max_cost_usd"),
+            dry_run=bool(data.get("dry_run", False)),
+            expected_artifact_roles=list(data.get("expected_artifact_roles", [])),
+            contract_version=data.get("contract_version"),
+            metadata_json=data.get("metadata_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageToolInvocation":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageToolResult:
+    invocation_id: str = ""
+    tool_name: str = ""
+    success: bool = False
+    data_json: Optional[str] = None
+    artifact_uris: List[str] = field(default_factory=list)
+    artifacts: List["OpenMontageArtifact"] = field(default_factory=list)
+    error: Optional[str] = None
+    cost_usd: float = 0.0
+    duration_seconds: float = 0.0
+    seed: Optional[int] = None
+    model: Optional[str] = None
+    raw_artifacts_json: Optional[str] = None
+    metadata_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "invocation_id": self.invocation_id,
+            "tool_name": self.tool_name,
+            "success": self.success,
+            "data_json": self.data_json,
+            "artifact_uris": list(self.artifact_uris),
+            "artifacts": [v.to_dict() for v in self.artifacts],
+            "error": self.error,
+            "cost_usd": self.cost_usd,
+            "duration_seconds": self.duration_seconds,
+            "seed": self.seed,
+            "model": self.model,
+            "raw_artifacts_json": self.raw_artifacts_json,
+            "metadata_json": self.metadata_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageToolResult":
+        return cls(
+            invocation_id=data.get("invocation_id", ""),
+            tool_name=data.get("tool_name", ""),
+            success=bool(data.get("success", False)),
+            data_json=data.get("data_json"),
+            artifact_uris=list(data.get("artifact_uris", [])),
+            artifacts=[OpenMontageArtifact.from_dict(v) for v in data.get("artifacts", [])],
+            error=data.get("error"),
+            cost_usd=float(data.get("cost_usd", 0.0)),
+            duration_seconds=float(data.get("duration_seconds", 0.0)),
+            seed=data.get("seed"),
+            model=data.get("model"),
+            raw_artifacts_json=data.get("raw_artifacts_json"),
+            metadata_json=data.get("metadata_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageToolResult":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontagePipelineSubStage:
+    name: str = ""
+    description: Optional[str] = None
+    condition: Optional[str] = None
+    human_approval_default: Optional[bool] = None
+    tools_available: List[str] = field(default_factory=list)
+    review_focus: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "name": self.name,
+            "description": self.description,
+            "condition": self.condition,
+            "human_approval_default": self.human_approval_default,
+            "tools_available": list(self.tools_available),
+            "review_focus": list(self.review_focus),
+        })
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontagePipelineSubStage":
+        return cls(
+            name=data.get("name", ""),
+            description=data.get("description"),
+            condition=data.get("condition"),
+            human_approval_default=data.get("human_approval_default"),
+            tools_available=list(data.get("tools_available", [])),
+            review_focus=list(data.get("review_focus", [])),
+        )
+
+
+@dataclass
+class OpenMontagePipelineStage:
+    name: str = ""
+    agent: Optional[str] = None
+    skill: Optional[str] = None
+    required_artifacts_in: List[str] = field(default_factory=list)
+    optional_artifacts_in: List[str] = field(default_factory=list)
+    produces: List[str] = field(default_factory=list)
+    preferred_tools: List[str] = field(default_factory=list)
+    fallback_tools: List[str] = field(default_factory=list)
+    required_tools: List[str] = field(default_factory=list)
+    optional_tools: List[str] = field(default_factory=list)
+    tools_available: List[str] = field(default_factory=list)
+    review_focus: List[str] = field(default_factory=list)
+    checkpoint_required: Optional[bool] = None
+    human_approval_default: Optional[bool] = None
+    success_criteria: List[str] = field(default_factory=list)
+    sub_stages: List[OpenMontagePipelineSubStage] = field(default_factory=list)
+    metadata_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "name": self.name,
+            "agent": self.agent,
+            "skill": self.skill,
+            "required_artifacts_in": list(self.required_artifacts_in),
+            "optional_artifacts_in": list(self.optional_artifacts_in),
+            "produces": list(self.produces),
+            "preferred_tools": list(self.preferred_tools),
+            "fallback_tools": list(self.fallback_tools),
+            "required_tools": list(self.required_tools),
+            "optional_tools": list(self.optional_tools),
+            "tools_available": list(self.tools_available),
+            "review_focus": list(self.review_focus),
+            "checkpoint_required": self.checkpoint_required,
+            "human_approval_default": self.human_approval_default,
+            "success_criteria": list(self.success_criteria),
+            "sub_stages": [v.to_dict() for v in self.sub_stages],
+            "metadata_json": self.metadata_json,
+        })
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontagePipelineStage":
+        return cls(
+            name=data.get("name", ""),
+            agent=data.get("agent"),
+            skill=data.get("skill"),
+            required_artifacts_in=list(data.get("required_artifacts_in", [])),
+            optional_artifacts_in=list(data.get("optional_artifacts_in", [])),
+            produces=list(data.get("produces", [])),
+            preferred_tools=list(data.get("preferred_tools", [])),
+            fallback_tools=list(data.get("fallback_tools", [])),
+            required_tools=list(data.get("required_tools", [])),
+            optional_tools=list(data.get("optional_tools", [])),
+            tools_available=list(data.get("tools_available", [])),
+            review_focus=list(data.get("review_focus", [])),
+            checkpoint_required=data.get("checkpoint_required"),
+            human_approval_default=data.get("human_approval_default"),
+            success_criteria=list(data.get("success_criteria", [])),
+            sub_stages=[OpenMontagePipelineSubStage.from_dict(v) for v in data.get("sub_stages", [])],
+            metadata_json=data.get("metadata_json"),
+        )
+
+
+@dataclass
+class OpenMontagePipelineOrchestration:
+    mode: Optional[str] = None
+    skill: Optional[str] = None
+    budget_default_usd: Optional[float] = None
+    max_revisions_per_stage: Optional[int] = None
+    max_send_backs: Optional[int] = None
+    max_wall_time_minutes: Optional[int] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "mode": self.mode,
+            "skill": self.skill,
+            "budget_default_usd": self.budget_default_usd,
+            "max_revisions_per_stage": self.max_revisions_per_stage,
+            "max_send_backs": self.max_send_backs,
+            "max_wall_time_minutes": self.max_wall_time_minutes,
+        })
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontagePipelineOrchestration":
+        return cls(
+            mode=data.get("mode"),
+            skill=data.get("skill"),
+            budget_default_usd=data.get("budget_default_usd"),
+            max_revisions_per_stage=data.get("max_revisions_per_stage"),
+            max_send_backs=data.get("max_send_backs"),
+            max_wall_time_minutes=data.get("max_wall_time_minutes"),
+        )
+
+
+@dataclass
+class OpenMontageExtensionPermissions:
+    custom_scripts: Optional[bool] = None
+    custom_playbooks: Optional[bool] = None
+    custom_skills: Optional[bool] = None
+    custom_tools: Optional[bool] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "custom_scripts": self.custom_scripts,
+            "custom_playbooks": self.custom_playbooks,
+            "custom_skills": self.custom_skills,
+            "custom_tools": self.custom_tools,
+        })
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageExtensionPermissions":
+        return cls(
+            custom_scripts=data.get("custom_scripts"),
+            custom_playbooks=data.get("custom_playbooks"),
+            custom_skills=data.get("custom_skills"),
+            custom_tools=data.get("custom_tools"),
+        )
+
+
+@dataclass
+class OpenMontageReferenceInputConfig:
+    supported: bool = False
+    analysis_depth: Optional[str] = None
+    analysis_tools: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "supported": self.supported,
+            "analysis_depth": self.analysis_depth,
+            "analysis_tools": list(self.analysis_tools),
+        })
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageReferenceInputConfig":
+        return cls(
+            supported=bool(data.get("supported", False)),
+            analysis_depth=data.get("analysis_depth"),
+            analysis_tools=list(data.get("analysis_tools", [])),
+        )
+
+
+@dataclass
+class OpenMontagePipelineManifest:
+    name: str = ""
+    version: str = ""
+    description: Optional[str] = None
+    category: Optional[str] = None
+    stability: Optional[str] = None
+    compatible_playbooks: List[str] = field(default_factory=list)
+    compatible_playbooks_json: Optional[str] = None
+    required_skills: List[str] = field(default_factory=list)
+    stages: List[OpenMontagePipelineStage] = field(default_factory=list)
+    default_checkpoint_policy: Optional[str] = None
+    reference_input: Optional[OpenMontageReferenceInputConfig] = None
+    orchestration: Optional[OpenMontagePipelineOrchestration] = None
+    extensions: Optional[OpenMontageExtensionPermissions] = None
+    metadata_json: Optional[str] = None
+    raw_manifest_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "name": self.name,
+            "version": self.version,
+            "description": self.description,
+            "category": self.category,
+            "stability": self.stability,
+            "compatible_playbooks": list(self.compatible_playbooks),
+            "compatible_playbooks_json": self.compatible_playbooks_json,
+            "required_skills": list(self.required_skills),
+            "stages": [v.to_dict() for v in self.stages],
+            "default_checkpoint_policy": self.default_checkpoint_policy,
+            "reference_input": self.reference_input.to_dict() if self.reference_input else None,
+            "orchestration": self.orchestration.to_dict() if self.orchestration else None,
+            "extensions": self.extensions.to_dict() if self.extensions else None,
+            "metadata_json": self.metadata_json,
+            "raw_manifest_json": self.raw_manifest_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontagePipelineManifest":
+        reference_input = data.get("reference_input")
+        orchestration = data.get("orchestration")
+        extensions = data.get("extensions")
+        return cls(
+            name=data.get("name", ""),
+            version=data.get("version", ""),
+            description=data.get("description"),
+            category=data.get("category"),
+            stability=data.get("stability"),
+            compatible_playbooks=list(data.get("compatible_playbooks", [])),
+            compatible_playbooks_json=data.get("compatible_playbooks_json"),
+            required_skills=list(data.get("required_skills", [])),
+            stages=[OpenMontagePipelineStage.from_dict(v) for v in data.get("stages", [])],
+            default_checkpoint_policy=data.get("default_checkpoint_policy"),
+            reference_input=OpenMontageReferenceInputConfig.from_dict(reference_input) if reference_input else None,
+            orchestration=OpenMontagePipelineOrchestration.from_dict(orchestration) if orchestration else None,
+            extensions=OpenMontageExtensionPermissions.from_dict(extensions) if extensions else None,
+            metadata_json=data.get("metadata_json"),
+            raw_manifest_json=data.get("raw_manifest_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontagePipelineManifest":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageArtifactPayload:
+    artifact_name: str = ""
+    schema_id: Optional[str] = None
+    schema_version: Optional[str] = None
+    payload_json: str = "{}"
+    validated: bool = False
+    schema_fields: List[OpenMontageSchemaField] = field(default_factory=list)
+    validation_error: Optional[str] = None
+    uri: Optional[str] = None
+    role: Optional[str] = None
+    metadata_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "artifact_name": self.artifact_name,
+            "schema_id": self.schema_id,
+            "schema_version": self.schema_version,
+            "payload_json": self.payload_json,
+            "validated": self.validated,
+            "schema_fields": [v.to_dict() for v in self.schema_fields],
+            "validation_error": self.validation_error,
+            "uri": self.uri,
+            "role": self.role,
+            "metadata_json": self.metadata_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageArtifactPayload":
+        return cls(
+            artifact_name=data.get("artifact_name", ""),
+            schema_id=data.get("schema_id"),
+            schema_version=data.get("schema_version"),
+            payload_json=data.get("payload_json", "{}"),
+            validated=bool(data.get("validated", False)),
+            schema_fields=[OpenMontageSchemaField.from_dict(v) for v in data.get("schema_fields", [])],
+            validation_error=data.get("validation_error"),
+            uri=data.get("uri"),
+            role=data.get("role"),
+            metadata_json=data.get("metadata_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageArtifactPayload":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageCheckpoint:
+    version: str = ""
+    project_id: str = ""
+    pipeline_type: str = ""
+    stage: str = ""
+    status: str = ""
+    timestamp: str = ""
+    style_playbook: Optional[str] = None
+    checkpoint_policy: Optional[str] = None
+    human_approval_required: Optional[bool] = None
+    human_approved: Optional[bool] = None
+    artifacts: List[OpenMontageArtifactPayload] = field(default_factory=list)
+    artifacts_json: Optional[str] = None
+    review_json: Optional[str] = None
+    cost_snapshot_json: Optional[str] = None
+    error: Optional[str] = None
+    metadata_json: Optional[str] = None
+    path: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "version": self.version,
+            "project_id": self.project_id,
+            "pipeline_type": self.pipeline_type,
+            "stage": self.stage,
+            "status": self.status,
+            "timestamp": self.timestamp,
+            "style_playbook": self.style_playbook,
+            "checkpoint_policy": self.checkpoint_policy,
+            "human_approval_required": self.human_approval_required,
+            "human_approved": self.human_approved,
+            "artifacts": [v.to_dict() for v in self.artifacts],
+            "artifacts_json": self.artifacts_json,
+            "review_json": self.review_json,
+            "cost_snapshot_json": self.cost_snapshot_json,
+            "error": self.error,
+            "metadata_json": self.metadata_json,
+            "path": self.path,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageCheckpoint":
+        return cls(
+            version=data.get("version", ""),
+            project_id=data.get("project_id", ""),
+            pipeline_type=data.get("pipeline_type", ""),
+            stage=data.get("stage", ""),
+            status=data.get("status", ""),
+            timestamp=data.get("timestamp", ""),
+            style_playbook=data.get("style_playbook"),
+            checkpoint_policy=data.get("checkpoint_policy"),
+            human_approval_required=data.get("human_approval_required"),
+            human_approved=data.get("human_approved"),
+            artifacts=[OpenMontageArtifactPayload.from_dict(v) for v in data.get("artifacts", [])],
+            artifacts_json=data.get("artifacts_json"),
+            review_json=data.get("review_json"),
+            cost_snapshot_json=data.get("cost_snapshot_json"),
+            error=data.get("error"),
+            metadata_json=data.get("metadata_json"),
+            path=data.get("path"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageCheckpoint":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageRuntimeAvailability:
+    name: str = ""
+    available: bool = False
+    note: Optional[str] = None
+    warnings: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "name": self.name,
+            "available": self.available,
+            "note": self.note,
+            "warnings": list(self.warnings),
+        })
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageRuntimeAvailability":
+        return cls(
+            name=data.get("name", ""),
+            available=bool(data.get("available", False)),
+            note=data.get("note"),
+            warnings=list(data.get("warnings", [])),
+        )
+
+
+@dataclass
+class OpenMontageCapabilitySummary:
+    capability: str = ""
+    configured: int = 0
+    total: int = 0
+    available_providers: List[str] = field(default_factory=list)
+    unavailable_providers: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "capability": self.capability,
+            "configured": self.configured,
+            "total": self.total,
+            "available_providers": list(self.available_providers),
+            "unavailable_providers": list(self.unavailable_providers),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageCapabilitySummary":
+        return cls(
+            capability=data.get("capability", ""),
+            configured=int(data.get("configured", 0)),
+            total=int(data.get("total", 0)),
+            available_providers=list(data.get("available_providers", [])),
+            unavailable_providers=list(data.get("unavailable_providers", [])),
+        )
+
+
+@dataclass
+class OpenMontageSetupOffer:
+    capability: str = ""
+    tool: str = ""
+    provider: str = ""
+    install_instructions: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "capability": self.capability,
+            "tool": self.tool,
+            "provider": self.provider,
+            "install_instructions": self.install_instructions,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageSetupOffer":
+        return cls(
+            capability=data.get("capability", ""),
+            tool=data.get("tool", ""),
+            provider=data.get("provider", ""),
+            install_instructions=data.get("install_instructions", ""),
+        )
+
+
+@dataclass
+class OpenMontagePreflightSnapshot:
+    composition_runtimes: List[OpenMontageRuntimeAvailability] = field(default_factory=list)
+    capabilities: List[OpenMontageCapabilitySummary] = field(default_factory=list)
+    setup_offers: List[OpenMontageSetupOffer] = field(default_factory=list)
+    runtime_warnings: List[str] = field(default_factory=list)
+    tools: List[OpenMontageToolContract] = field(default_factory=list)
+    pipelines: List[OpenMontagePipelineManifest] = field(default_factory=list)
+    captured_at: str = ""
+    provider_menu_summary_json: Optional[str] = None
+    provider_menu_json: Optional[str] = None
+    support_envelope_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "composition_runtimes": [v.to_dict() for v in self.composition_runtimes],
+            "capabilities": [v.to_dict() for v in self.capabilities],
+            "setup_offers": [v.to_dict() for v in self.setup_offers],
+            "runtime_warnings": list(self.runtime_warnings),
+            "tools": [v.to_dict() for v in self.tools],
+            "pipelines": [v.to_dict() for v in self.pipelines],
+            "captured_at": self.captured_at,
+            "provider_menu_summary_json": self.provider_menu_summary_json,
+            "provider_menu_json": self.provider_menu_json,
+            "support_envelope_json": self.support_envelope_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontagePreflightSnapshot":
+        return cls(
+            composition_runtimes=[OpenMontageRuntimeAvailability.from_dict(v) for v in data.get("composition_runtimes", [])],
+            capabilities=[OpenMontageCapabilitySummary.from_dict(v) for v in data.get("capabilities", [])],
+            setup_offers=[OpenMontageSetupOffer.from_dict(v) for v in data.get("setup_offers", [])],
+            runtime_warnings=list(data.get("runtime_warnings", [])),
+            tools=[OpenMontageToolContract.from_dict(v) for v in data.get("tools", [])],
+            pipelines=[OpenMontagePipelineManifest.from_dict(v) for v in data.get("pipelines", [])],
+            captured_at=data.get("captured_at", ""),
+            provider_menu_summary_json=data.get("provider_menu_summary_json"),
+            provider_menu_json=data.get("provider_menu_json"),
+            support_envelope_json=data.get("support_envelope_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontagePreflightSnapshot":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageProfessionalVideoRequest:
+    version: OpenMontageProtocolVersion = OpenMontageProtocolVersion.UNSPECIFIED
+    request_id: str = ""
+    idempotency_key: str = ""
+    tenant_id: str = ""
+    user_id: str = ""
+    title: str = ""
+    prompt: str = ""
+    target_platform: str = ""
+    language: str = ""
+    duration_seconds: int = 0
+    aspect_ratio: str = ""
+    audience: Optional[str] = None
+    objective: Optional[str] = None
+    brand_json: Optional[str] = None
+    pipeline: str = ""
+    style_playbook: Optional[str] = None
+    render_runtime: Optional[str] = None
+    quality_tier: str = ""
+    approval_policy: str = ""
+    budget_limit_usd: float = 0.0
+    provider_preferences: Dict[str, str] = field(default_factory=dict)
+    assets: List[OpenMontageInputAsset] = field(default_factory=list)
+    callback: Optional[OpenMontageCallbackConfig] = None
+    metadata_json: Optional[str] = None
+    source_script: Optional[str] = None
+    source_script_uri: Optional[str] = None
+    input_mode: Optional[str] = None
+    output_profile: Optional[str] = None
+    renderer_family: Optional[str] = None
+    delivery_promise_json: Optional[str] = None
+    music_plan_json: Optional[str] = None
+    voice_selection_json: Optional[str] = None
+    tool_invocations: List[OpenMontageToolInvocation] = field(default_factory=list)
+    artifact_inputs: List[OpenMontageArtifactPayload] = field(default_factory=list)
+    pipeline_manifest: Optional[OpenMontagePipelineManifest] = None
+    preflight_policy: Optional[str] = None
+    openmontage_request_json: Optional[str] = None
+    provider_slots: Dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "version": self.version.value,
+            "request_id": self.request_id,
+            "idempotency_key": self.idempotency_key,
+            "tenant_id": self.tenant_id,
+            "user_id": self.user_id,
+            "title": self.title,
+            "prompt": self.prompt,
+            "target_platform": self.target_platform,
+            "language": self.language,
+            "duration_seconds": self.duration_seconds,
+            "aspect_ratio": self.aspect_ratio,
+            "audience": self.audience,
+            "objective": self.objective,
+            "brand_json": self.brand_json,
+            "pipeline": self.pipeline,
+            "style_playbook": self.style_playbook,
+            "render_runtime": self.render_runtime,
+            "quality_tier": self.quality_tier,
+            "approval_policy": self.approval_policy,
+            "budget_limit_usd": self.budget_limit_usd,
+            "provider_preferences": dict(self.provider_preferences),
+            "assets": [asset.to_dict() for asset in self.assets],
+            "callback": self.callback.to_dict() if self.callback else None,
+            "metadata_json": self.metadata_json,
+            "source_script": self.source_script,
+            "source_script_uri": self.source_script_uri,
+            "input_mode": self.input_mode,
+            "output_profile": self.output_profile,
+            "renderer_family": self.renderer_family,
+            "delivery_promise_json": self.delivery_promise_json,
+            "music_plan_json": self.music_plan_json,
+            "voice_selection_json": self.voice_selection_json,
+            "tool_invocations": [v.to_dict() for v in self.tool_invocations],
+            "artifact_inputs": [v.to_dict() for v in self.artifact_inputs],
+            "pipeline_manifest": self.pipeline_manifest.to_dict() if self.pipeline_manifest else None,
+            "preflight_policy": self.preflight_policy,
+            "openmontage_request_json": self.openmontage_request_json,
+            "provider_slots": dict(self.provider_slots),
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageProfessionalVideoRequest":
+        callback = data.get("callback")
+        pipeline_manifest = data.get("pipeline_manifest")
+        return cls(
+            version=OpenMontageProtocolVersion.from_json(data.get("version")),
+            request_id=data.get("request_id", ""),
+            idempotency_key=data.get("idempotency_key", ""),
+            tenant_id=data.get("tenant_id", ""),
+            user_id=data.get("user_id", ""),
+            title=data.get("title", ""),
+            prompt=data.get("prompt", ""),
+            target_platform=data.get("target_platform", ""),
+            language=data.get("language", ""),
+            duration_seconds=int(data.get("duration_seconds", 0)),
+            aspect_ratio=data.get("aspect_ratio", ""),
+            audience=data.get("audience"),
+            objective=data.get("objective"),
+            brand_json=data.get("brand_json"),
+            pipeline=data.get("pipeline", ""),
+            style_playbook=data.get("style_playbook"),
+            render_runtime=data.get("render_runtime"),
+            quality_tier=data.get("quality_tier", ""),
+            approval_policy=data.get("approval_policy", ""),
+            budget_limit_usd=float(data.get("budget_limit_usd", 0.0)),
+            provider_preferences=dict(data.get("provider_preferences", {}) or {}),
+            assets=[OpenMontageInputAsset.from_dict(v) for v in data.get("assets", [])],
+            callback=OpenMontageCallbackConfig.from_dict(callback) if callback else None,
+            metadata_json=data.get("metadata_json"),
+            source_script=data.get("source_script"),
+            source_script_uri=data.get("source_script_uri"),
+            input_mode=data.get("input_mode"),
+            output_profile=data.get("output_profile"),
+            renderer_family=data.get("renderer_family"),
+            delivery_promise_json=data.get("delivery_promise_json"),
+            music_plan_json=data.get("music_plan_json"),
+            voice_selection_json=data.get("voice_selection_json"),
+            tool_invocations=[OpenMontageToolInvocation.from_dict(v) for v in data.get("tool_invocations", [])],
+            artifact_inputs=[OpenMontageArtifactPayload.from_dict(v) for v in data.get("artifact_inputs", [])],
+            pipeline_manifest=OpenMontagePipelineManifest.from_dict(pipeline_manifest) if pipeline_manifest else None,
+            preflight_policy=data.get("preflight_policy"),
+            openmontage_request_json=data.get("openmontage_request_json"),
+            provider_slots=dict(data.get("provider_slots", {}) or {}),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageProfessionalVideoRequest":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageError:
+    code: OpenMontageErrorCode = OpenMontageErrorCode.UNSPECIFIED
+    message: str = ""
+    retryable: bool = False
+    detail_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "code": self.code.value,
+            "message": self.message,
+            "retryable": self.retryable,
+            "detail_json": self.detail_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageError":
+        return cls(
+            code=OpenMontageErrorCode.from_json(data.get("code")),
+            message=data.get("message", ""),
+            retryable=bool(data.get("retryable", False)),
+            detail_json=data.get("detail_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageError":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageSubmitResponse:
+    version: OpenMontageProtocolVersion = OpenMontageProtocolVersion.UNSPECIFIED
+    job: Optional[OpenMontageJobRef] = None
+    status: OpenMontageJobStatus = OpenMontageJobStatus.UNSPECIFIED
+    accepted_at: str = ""
+    status_url: Optional[str] = None
+    next_event_sequence: int = 0
+    error: Optional[OpenMontageError] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "version": self.version.value,
+            "job": self.job.to_dict() if self.job else None,
+            "status": self.status.value,
+            "accepted_at": self.accepted_at,
+            "status_url": self.status_url,
+            "next_event_sequence": self.next_event_sequence,
+            "error": self.error.to_dict() if self.error else None,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageSubmitResponse":
+        job = data.get("job")
+        error = data.get("error")
+        return cls(
+            version=OpenMontageProtocolVersion.from_json(data.get("version")),
+            job=OpenMontageJobRef.from_dict(job) if job else None,
+            status=OpenMontageJobStatus.from_json(data.get("status")),
+            accepted_at=data.get("accepted_at", ""),
+            status_url=data.get("status_url"),
+            next_event_sequence=int(data.get("next_event_sequence", 0)),
+            error=OpenMontageError.from_dict(error) if error else None,
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageSubmitResponse":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageArtifact:
+    artifact_id: str = ""
+    kind: OpenMontageArtifactKind = OpenMontageArtifactKind.UNSPECIFIED
+    role: str = ""
+    uri: str = ""
+    mime_type: Optional[str] = None
+    width_px: Optional[int] = None
+    height_px: Optional[int] = None
+    duration_ms: Optional[int] = None
+    bytes: Optional[int] = None
+    metadata_json: Optional[str] = None
+    artifact_name: Optional[str] = None
+    path: Optional[str] = None
+    source_tool: Optional[str] = None
+    scene_id: Optional[str] = None
+    payload_json: Optional[str] = None
+    schema_id: Optional[str] = None
+    validated: Optional[bool] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "artifact_id": self.artifact_id,
+            "kind": self.kind.value,
+            "role": self.role,
+            "uri": self.uri,
+            "mime_type": self.mime_type,
+            "width_px": self.width_px,
+            "height_px": self.height_px,
+            "duration_ms": self.duration_ms,
+            "bytes": self.bytes,
+            "metadata_json": self.metadata_json,
+            "artifact_name": self.artifact_name,
+            "path": self.path,
+            "source_tool": self.source_tool,
+            "scene_id": self.scene_id,
+            "payload_json": self.payload_json,
+            "schema_id": self.schema_id,
+            "validated": self.validated,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageArtifact":
+        return cls(
+            artifact_id=data.get("artifact_id", ""),
+            kind=OpenMontageArtifactKind.from_json(data.get("kind")),
+            role=data.get("role", ""),
+            uri=data.get("uri", ""),
+            mime_type=data.get("mime_type"),
+            width_px=data.get("width_px"),
+            height_px=data.get("height_px"),
+            duration_ms=data.get("duration_ms"),
+            bytes=data.get("bytes"),
+            metadata_json=data.get("metadata_json"),
+            artifact_name=data.get("artifact_name"),
+            path=data.get("path"),
+            source_tool=data.get("source_tool"),
+            scene_id=data.get("scene_id"),
+            payload_json=data.get("payload_json"),
+            schema_id=data.get("schema_id"),
+            validated=data.get("validated"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageArtifact":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageStageCheckpoint:
+    sequence: int = 0
+    stage: str = ""
+    status: OpenMontageJobStatus = OpenMontageJobStatus.UNSPECIFIED
+    summary: str = ""
+    artifact_refs: List[str] = field(default_factory=list)
+    cost_snapshot_json: Optional[str] = None
+    review_json: Optional[str] = None
+    created_at: str = ""
+    checkpoint: Optional[OpenMontageCheckpoint] = None
+    artifact_payloads: List[OpenMontageArtifactPayload] = field(default_factory=list)
+    checkpoint_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "sequence": self.sequence,
+            "stage": self.stage,
+            "status": self.status.value,
+            "summary": self.summary,
+            "artifact_refs": list(self.artifact_refs),
+            "cost_snapshot_json": self.cost_snapshot_json,
+            "review_json": self.review_json,
+            "created_at": self.created_at,
+            "checkpoint": self.checkpoint.to_dict() if self.checkpoint else None,
+            "artifact_payloads": [v.to_dict() for v in self.artifact_payloads],
+            "checkpoint_json": self.checkpoint_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageStageCheckpoint":
+        checkpoint = data.get("checkpoint")
+        return cls(
+            sequence=int(data.get("sequence", 0)),
+            stage=data.get("stage", ""),
+            status=OpenMontageJobStatus.from_json(data.get("status")),
+            summary=data.get("summary", ""),
+            artifact_refs=list(data.get("artifact_refs", [])),
+            cost_snapshot_json=data.get("cost_snapshot_json"),
+            review_json=data.get("review_json"),
+            created_at=data.get("created_at", ""),
+            checkpoint=OpenMontageCheckpoint.from_dict(checkpoint) if checkpoint else None,
+            artifact_payloads=[OpenMontageArtifactPayload.from_dict(v) for v in data.get("artifact_payloads", [])],
+            checkpoint_json=data.get("checkpoint_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageStageCheckpoint":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageDecision:
+    sequence: int = 0
+    category: str = ""
+    summary: str = ""
+    selected_option: Optional[str] = None
+    options_json: Optional[str] = None
+    confidence: Optional[str] = None
+    created_at: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "sequence": self.sequence,
+            "category": self.category,
+            "summary": self.summary,
+            "selected_option": self.selected_option,
+            "options_json": self.options_json,
+            "confidence": self.confidence,
+            "created_at": self.created_at,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageDecision":
+        return cls(
+            sequence=int(data.get("sequence", 0)),
+            category=data.get("category", ""),
+            summary=data.get("summary", ""),
+            selected_option=data.get("selected_option"),
+            options_json=data.get("options_json"),
+            confidence=data.get("confidence"),
+            created_at=data.get("created_at", ""),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageDecision":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageApprovalRequest:
+    approval_id: str = ""
+    stage: str = ""
+    decision_category: str = ""
+    prompt: str = ""
+    options_json: Optional[str] = None
+    expires_at: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "approval_id": self.approval_id,
+            "stage": self.stage,
+            "decision_category": self.decision_category,
+            "prompt": self.prompt,
+            "options_json": self.options_json,
+            "expires_at": self.expires_at,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageApprovalRequest":
+        return cls(
+            approval_id=data.get("approval_id", ""),
+            stage=data.get("stage", ""),
+            decision_category=data.get("decision_category", ""),
+            prompt=data.get("prompt", ""),
+            options_json=data.get("options_json"),
+            expires_at=data.get("expires_at"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageApprovalRequest":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageApprovalDecision:
+    job_id: str = ""
+    approval_id: str = ""
+    actor_id: str = ""
+    decision: str = ""
+    comment: Optional[str] = None
+    decided_at: str = ""
+    metadata_json: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "job_id": self.job_id,
+            "approval_id": self.approval_id,
+            "actor_id": self.actor_id,
+            "decision": self.decision,
+            "comment": self.comment,
+            "decided_at": self.decided_at,
+            "metadata_json": self.metadata_json,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageApprovalDecision":
+        return cls(
+            job_id=data.get("job_id", ""),
+            approval_id=data.get("approval_id", ""),
+            actor_id=data.get("actor_id", ""),
+            decision=data.get("decision", ""),
+            comment=data.get("comment"),
+            decided_at=data.get("decided_at", ""),
+            metadata_json=data.get("metadata_json"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageApprovalDecision":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageJobSnapshot:
+    version: OpenMontageProtocolVersion = OpenMontageProtocolVersion.UNSPECIFIED
+    job: Optional[OpenMontageJobRef] = None
+    status: OpenMontageJobStatus = OpenMontageJobStatus.UNSPECIFIED
+    pipeline: str = ""
+    current_stage: str = ""
+    progress_pct: int = 0
+    checkpoints: List[OpenMontageStageCheckpoint] = field(default_factory=list)
+    decisions: List[OpenMontageDecision] = field(default_factory=list)
+    approvals: List[OpenMontageApprovalRequest] = field(default_factory=list)
+    artifacts: List[OpenMontageArtifact] = field(default_factory=list)
+    error: Optional[OpenMontageError] = None
+    metrics_json: Optional[str] = None
+    updated_at: str = ""
+    preflight: Optional[OpenMontagePreflightSnapshot] = None
+    pipeline_manifest: Optional[OpenMontagePipelineManifest] = None
+    artifact_payloads: List[OpenMontageArtifactPayload] = field(default_factory=list)
+    tool_results: List[OpenMontageToolResult] = field(default_factory=list)
+    full_checkpoints: List[OpenMontageCheckpoint] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "version": self.version.value,
+            "job": self.job.to_dict() if self.job else None,
+            "status": self.status.value,
+            "pipeline": self.pipeline,
+            "current_stage": self.current_stage,
+            "progress_pct": self.progress_pct,
+            "checkpoints": [v.to_dict() for v in self.checkpoints],
+            "decisions": [v.to_dict() for v in self.decisions],
+            "approvals": [v.to_dict() for v in self.approvals],
+            "artifacts": [v.to_dict() for v in self.artifacts],
+            "error": self.error.to_dict() if self.error else None,
+            "metrics_json": self.metrics_json,
+            "updated_at": self.updated_at,
+            "preflight": self.preflight.to_dict() if self.preflight else None,
+            "pipeline_manifest": self.pipeline_manifest.to_dict() if self.pipeline_manifest else None,
+            "artifact_payloads": [v.to_dict() for v in self.artifact_payloads],
+            "tool_results": [v.to_dict() for v in self.tool_results],
+            "full_checkpoints": [v.to_dict() for v in self.full_checkpoints],
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageJobSnapshot":
+        job = data.get("job")
+        error = data.get("error")
+        preflight = data.get("preflight")
+        pipeline_manifest = data.get("pipeline_manifest")
+        return cls(
+            version=OpenMontageProtocolVersion.from_json(data.get("version")),
+            job=OpenMontageJobRef.from_dict(job) if job else None,
+            status=OpenMontageJobStatus.from_json(data.get("status")),
+            pipeline=data.get("pipeline", ""),
+            current_stage=data.get("current_stage", ""),
+            progress_pct=int(data.get("progress_pct", 0)),
+            checkpoints=[OpenMontageStageCheckpoint.from_dict(v) for v in data.get("checkpoints", [])],
+            decisions=[OpenMontageDecision.from_dict(v) for v in data.get("decisions", [])],
+            approvals=[OpenMontageApprovalRequest.from_dict(v) for v in data.get("approvals", [])],
+            artifacts=[OpenMontageArtifact.from_dict(v) for v in data.get("artifacts", [])],
+            error=OpenMontageError.from_dict(error) if error else None,
+            metrics_json=data.get("metrics_json"),
+            updated_at=data.get("updated_at", ""),
+            preflight=OpenMontagePreflightSnapshot.from_dict(preflight) if preflight else None,
+            pipeline_manifest=OpenMontagePipelineManifest.from_dict(pipeline_manifest) if pipeline_manifest else None,
+            artifact_payloads=[OpenMontageArtifactPayload.from_dict(v) for v in data.get("artifact_payloads", [])],
+            tool_results=[OpenMontageToolResult.from_dict(v) for v in data.get("tool_results", [])],
+            full_checkpoints=[OpenMontageCheckpoint.from_dict(v) for v in data.get("full_checkpoints", [])],
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageJobSnapshot":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageJobEvent:
+    version: OpenMontageProtocolVersion = OpenMontageProtocolVersion.UNSPECIFIED
+    event_id: str = ""
+    sequence: int = 0
+    job: Optional[OpenMontageJobRef] = None
+    event_type: OpenMontageEventType = OpenMontageEventType.UNSPECIFIED
+    status: OpenMontageJobStatus = OpenMontageJobStatus.UNSPECIFIED
+    stage: str = ""
+    progress_pct: int = 0
+    checkpoint: Optional[OpenMontageStageCheckpoint] = None
+    approval: Optional[OpenMontageApprovalRequest] = None
+    artifacts: List[OpenMontageArtifact] = field(default_factory=list)
+    error: Optional[OpenMontageError] = None
+    event_json: Optional[str] = None
+    emitted_at: str = ""
+    tool_invocation: Optional[OpenMontageToolInvocation] = None
+    tool_result: Optional[OpenMontageToolResult] = None
+    artifact_payloads: List[OpenMontageArtifactPayload] = field(default_factory=list)
+    checkpoint_full: Optional[OpenMontageCheckpoint] = None
+    preflight: Optional[OpenMontagePreflightSnapshot] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "version": self.version.value,
+            "event_id": self.event_id,
+            "sequence": self.sequence,
+            "job": self.job.to_dict() if self.job else None,
+            "event_type": self.event_type.value,
+            "status": self.status.value,
+            "stage": self.stage,
+            "progress_pct": self.progress_pct,
+            "checkpoint": self.checkpoint.to_dict() if self.checkpoint else None,
+            "approval": self.approval.to_dict() if self.approval else None,
+            "artifacts": [v.to_dict() for v in self.artifacts],
+            "error": self.error.to_dict() if self.error else None,
+            "event_json": self.event_json,
+            "emitted_at": self.emitted_at,
+            "tool_invocation": self.tool_invocation.to_dict() if self.tool_invocation else None,
+            "tool_result": self.tool_result.to_dict() if self.tool_result else None,
+            "artifact_payloads": [v.to_dict() for v in self.artifact_payloads],
+            "checkpoint_full": self.checkpoint_full.to_dict() if self.checkpoint_full else None,
+            "preflight": self.preflight.to_dict() if self.preflight else None,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageJobEvent":
+        job = data.get("job")
+        checkpoint = data.get("checkpoint")
+        approval = data.get("approval")
+        error = data.get("error")
+        tool_invocation = data.get("tool_invocation")
+        tool_result = data.get("tool_result")
+        checkpoint_full = data.get("checkpoint_full")
+        preflight = data.get("preflight")
+        return cls(
+            version=OpenMontageProtocolVersion.from_json(data.get("version")),
+            event_id=data.get("event_id", ""),
+            sequence=int(data.get("sequence", 0)),
+            job=OpenMontageJobRef.from_dict(job) if job else None,
+            event_type=OpenMontageEventType.from_json(data.get("event_type")),
+            status=OpenMontageJobStatus.from_json(data.get("status")),
+            stage=data.get("stage", ""),
+            progress_pct=int(data.get("progress_pct", 0)),
+            checkpoint=OpenMontageStageCheckpoint.from_dict(checkpoint) if checkpoint else None,
+            approval=OpenMontageApprovalRequest.from_dict(approval) if approval else None,
+            artifacts=[OpenMontageArtifact.from_dict(v) for v in data.get("artifacts", [])],
+            error=OpenMontageError.from_dict(error) if error else None,
+            event_json=data.get("event_json"),
+            emitted_at=data.get("emitted_at", ""),
+            tool_invocation=OpenMontageToolInvocation.from_dict(tool_invocation) if tool_invocation else None,
+            tool_result=OpenMontageToolResult.from_dict(tool_result) if tool_result else None,
+            artifact_payloads=[OpenMontageArtifactPayload.from_dict(v) for v in data.get("artifact_payloads", [])],
+            checkpoint_full=OpenMontageCheckpoint.from_dict(checkpoint_full) if checkpoint_full else None,
+            preflight=OpenMontagePreflightSnapshot.from_dict(preflight) if preflight else None,
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageJobEvent":
+        return cls.from_dict(json.loads(json_str))
+
+
+@dataclass
+class OpenMontageCallbackAck:
+    received: bool = False
+    event_id: str = ""
+    next_expected_sequence: int = 0
+    message: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return _omit_none({
+            "received": self.received,
+            "event_id": self.event_id,
+            "next_expected_sequence": self.next_expected_sequence,
+            "message": self.message,
+        })
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "OpenMontageCallbackAck":
+        return cls(
+            received=bool(data.get("received", False)),
+            event_id=data.get("event_id", ""),
+            next_expected_sequence=int(data.get("next_expected_sequence", 0)),
+            message=data.get("message"),
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "OpenMontageCallbackAck":
+        return cls.from_dict(json.loads(json_str))
+
 class NotificationAction(str, Enum):
     """Activity notification action (NotificationEvent.action_type).
 
