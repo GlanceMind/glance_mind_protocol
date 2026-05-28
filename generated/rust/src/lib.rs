@@ -1159,6 +1159,7 @@ mod tests {
         assert!(json.contains(r#""version":"v1""#));
         assert!(json.contains(r#""kind":"reference_image""#));
         assert!(!json.contains(r#""version":1"#));
+        assert!(json.contains(r#""input_mode":"marketing_script""#));
 
         let parsed: OpenMontageProfessionalVideoRequest =
             serde_json::from_str(&json).expect("deserialize");
@@ -1220,6 +1221,8 @@ mod tests {
         let json = serde_json::to_string(&event).expect("serialize");
         assert!(json.contains(r#""event_type":"job_completed""#));
         assert!(json.contains(r#""status":"completed""#));
+        assert!(!json.contains(r#""event_type":4"#));
+        assert!(!json.contains(r#""status":2"#));
 
         let parsed: OpenMontageJobEvent = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(parsed.sequence, 7);

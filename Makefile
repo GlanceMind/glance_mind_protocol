@@ -69,10 +69,13 @@ sync-python:
 	@mkdir -p ../glance_mind_worker/glance_mind_executor/protocol_gen
 	@cp generated/python/glance_mind.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
 	@cp generated/python/__init__.py ../glance_mind_worker/glance_mind_executor/protocol_gen/
+	@mkdir -p ../glance_mind_worker/openmontage_executor/protocol_gen
+	@cp generated/python/glance_mind.py ../glance_mind_worker/openmontage_executor/protocol_gen/
+	@cp generated/python/__init__.py ../glance_mind_worker/openmontage_executor/protocol_gen/
 	@mkdir -p ../gm_studio/src/social_seed_workflow/protocol_gen
 	@cp generated/python/glance_mind.py ../gm_studio/src/social_seed_workflow/protocol_gen/
 	@cp generated/python/__init__.py ../gm_studio/src/social_seed_workflow/protocol_gen/
-	@echo "✓ Python code synced to executor and gm_studio"
+	@echo "✓ Python code synced to executor, openmontage_executor, and gm_studio"
 
 # Sync without regenerating (use when generated/ is already up to date)
 sync-only: sync-rust sync-python
