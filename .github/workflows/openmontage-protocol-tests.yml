@@ -83,10 +83,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install pytest
+      - name: Install pytest + hypothesis
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest
+          python -m pip install pytest hypothesis
 
       # Python gate: the OpenMontage protocol suite + the cross-language
       # golden-vector suite. PYTEST_DISABLE_PLUGIN_AUTOLOAD is set globally
