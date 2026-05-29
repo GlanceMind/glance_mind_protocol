@@ -861,3 +861,184 @@ def test_property_tool_contract_roundtrips(x):
 @given(x=_st_pipeline_manifest())
 def test_property_pipeline_manifest_roundtrips(x):
     _assert_roundtrip(x, gm.OpenMontagePipelineManifest)
+
+
+# ---------------------------------------------------------------------------
+# T10-4 (R-PROTO-04): unknown-enum behavior at BOTH layers (Python side).
+#
+# Unlike the Rust codec, the Python codec COERCES an unknown enum token to
+# UNSPECIFIED at BOTH layers (it is a forward-compatible reader):
+#
+#   * BARE codec (``Enum.from_json``): an unknown token -> ``Enum.UNSPECIFIED``
+#     (the ``return cls.UNSPECIFIED`` fallback in ``_OpenMontageEnum``).
+#   * MESSAGE layer (``Message.from_json``/``from_dict``): an unknown ``status``
+#     or ``event_type`` string yields a struct with that enum = UNSPECIFIED and
+#     NO error raised.
+#
+# The companion RUST codec instead REJECTS an unknown token on the message layer
+# (``serde_json::from_str`` returns an "unknown variant" ``Err``); see
+# tests/openmontage_contract.rs. That intentional Rust-rejects / Python-coerces
+# divergence is recorded in docs/openmontage-api-coverage.md.
+# ---------------------------------------------------------------------------
+
+
+def test_unknown_enum_bare_codec_coerces_to_unspecified():
+    # Strict on the Rust side; coercing on the Python side. Exercised on 2 of
+    # the 6 enums (JobStatus + EventType); all six share ``_OpenMontageEnum``.
+    assert OpenMontageJobStatus.from_json("bogus") is OpenMontageJobStatus.UNSPECIFIED, (
+        "bare OpenMontageJobStatus.from_json must coerce an unknown token to UNSPECIFIED"
+    )
+    assert (
+        OpenMontageEventType.from_json("not_a_real_event")
+        is OpenMontageEventType.UNSPECIFIED
+    ), "bare OpenMontageEventType.from_json must coerce an unknown token to UNSPECIFIED"
+    # Sanity: a KNOWN token still parses to its own member (guards against a
+    # degenerate codec that maps EVERYTHING to UNSPECIFIED).
+    assert OpenMontageJobStatus.from_json("running") is OpenMontageJobStatus.RUNNING, (
+        "a known token must still parse to its own member on the bare codec"
+    )
+
+
+def test_unknown_enum_message_layer_coerces_to_unspecified():
+    # An unknown enum token anywhere in a message is silently coerced to
+    # UNSPECIFIED (no error). This is the Python side of the documented
+    # Rust-rejects / Python-coerces divergence.
+
+    # (a) unknown ``status`` token.
+    ev = gm.OpenMontageJobEvent.from_json(
+        '{"version":"v1","status":"bogus_status"}'
+    )
+    assert ev.status is OpenMontageJobStatus.UNSPECIFIED, (
+        "an unknown `status` token must coerce to UNSPECIFIED, "
+        f"got {ev.status!r}"
+    )
+
+    # (b) unknown ``event_type`` token.
+    ev = gm.OpenMontageJobEvent.from_json(
+        '{"version":"v1","event_type":"teleportation_completed"}'
+    )
+    assert ev.event_type is OpenMontageEventType.UNSPECIFIED, (
+        "an unknown `event_type` token must coerce to UNSPECIFIED, "
+        f"got {ev.event_type!r}"
+    )
+
+    # Control: known tokens parse to their own members (so the coercions above
+    # are caused by the unknown token, not by a codec that ignores the field).
+    ev = gm.OpenMontageJobEvent.from_json(
+        '{"version":"v1","status":"running","event_type":"job_status_changed"}'
+    )
+    assert ev.status is OpenMontageJobStatus.RUNNING
+    assert ev.event_type is OpenMontageEventType.JOB_STATUS_CHANGED
+
+
+# ---------------------------------------------------------------------------
+# T10-5 (R-PROTO-05): unknown-field tolerance + omit-vs-null optional parity
+# (Python side).
+#
+#   * Forward-compat: a message dict carrying an EXTRA unknown key is IGNORED.
+#     ``from_dict`` reads each known field via ``data.get(...)`` and never
+#     inspects unrecognized keys, so a field a newer peer added is dropped.
+#   * Omit-vs-null: an optional field may arrive as an OMITTED key or as an
+#     explicit ``None``. Both forms must deserialize to the SAME value
+#     (``None``) and round-trip identically. Cosmetic wire-form difference; both
+#     sides read both forms (recorded in docs/openmontage-api-coverage.md).
+# ---------------------------------------------------------------------------
+
+
+def test_unknown_field_is_ignored():
+    # Extra unknown key on a leaf message.
+    asset = gm.OpenMontageInputAsset.from_dict(
+        {"kind": "audio", "role": "narration", "uri": "u", "future_field": 123}
+    )
+    assert asset.kind is OpenMontageInputAssetKind.AUDIO
+    assert asset.role == "narration"
+
+    # Extra unknown key on a top-level message too.
+    req = gm.OpenMontageProfessionalVideoRequest.from_dict(
+        {"version": "v1", "request_id": "r1", "future_field": {"nested": [1, 2, 3]}}
+    )
+    assert req.request_id == "r1"
+    assert req.version is OpenMontageProtocolVersion.V1
+    # The dropped key must NOT reappear on re-serialization.
+    assert "future_field" not in req.to_dict(), (
+        "an ignored unknown key must not be echoed back out by to_dict()"
+    )
+
+
+def test_optional_omit_vs_null_yield_same_value():
+    # ``OpenMontageInputAsset.mime_type`` is optional.
+    # Form A: key omitted entirely.
+    omitted = gm.OpenMontageInputAsset.from_dict(
+        {"kind": "audio", "role": "r", "uri": "u"}
+    )
+    # Form B: key present but explicitly null.
+    explicit_null = gm.OpenMontageInputAsset.from_dict(
+        {"kind": "audio", "role": "r", "uri": "u", "mime_type": None}
+    )
+
+    # Both forms collapse to the same absent value...
+    assert omitted.mime_type is None, "omitted optional must be None"
+    assert explicit_null.mime_type is None, "explicit-null optional must also be None"
+    # ...and produce structurally identical messages (dataclass ``==``).
+    assert omitted == explicit_null, (
+        "omit-vs-null optional must deserialize to the SAME value"
+    )
+
+    # Round-trip consistency: re-serializing either form yields the canonical
+    # wire form (which OMITS the None optional via ``_omit_none``), and
+    # re-parsing it lands back on the same value.
+    reserialized = omitted.to_dict()
+    assert "mime_type" not in reserialized, (
+        "a None optional must be omitted from the canonical wire form"
+    )
+    assert gm.OpenMontageInputAsset.from_dict(reserialized) == omitted, (
+        "round-trip must be stable for the absent optional"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T10-6 (R-PROTO-06): ``version`` default + string emission (Python side).
+#
+# ``version`` is an ``OpenMontageProtocolVersion`` (a ``(str, Enum)``); it MUST
+# serialize as its lowercase STRING token — ``"v1"`` for ``V1`` and
+# ``"unspecified"`` for the defaulted/UNSPECIFIED value — NEVER the int ``1``.
+# Asserted on two messages that carry ``version`` (ProfessionalVideoRequest +
+# JobEvent).
+# ---------------------------------------------------------------------------
+
+
+def test_version_serializes_as_string_token_not_int():
+    # --- version = V1 -> "v1" ---
+    for ctx, msg in (
+        (
+            "ProfessionalVideoRequest",
+            gm.OpenMontageProfessionalVideoRequest(version=OpenMontageProtocolVersion.V1),
+        ),
+        ("JobEvent", gm.OpenMontageJobEvent(version=OpenMontageProtocolVersion.V1)),
+    ):
+        v = msg.to_dict()["version"]
+        assert v == "v1", f"{ctx}(V1): version must serialize to 'v1', got {v!r}"
+        assert isinstance(v, str) and not isinstance(v, bool), (
+            f"{ctx}(V1): version must be a string, got {type(v).__name__}"
+        )
+        assert v != 1, f"{ctx}(V1): version must NOT be the int 1"
+        # In the JSON text it appears as the quoted string, never the bare int.
+        text = msg.to_json()
+        assert '"version": "v1"' in text, (
+            f"{ctx}(V1): JSON must contain '\"version\": \"v1\"', got: {text}"
+        )
+
+    # --- defaulted / UNSPECIFIED -> "unspecified" ---
+    for ctx, msg in (
+        ("ProfessionalVideoRequest", gm.OpenMontageProfessionalVideoRequest()),
+        ("JobEvent", gm.OpenMontageJobEvent()),
+    ):
+        # The dataclass default is UNSPECIFIED.
+        assert msg.version is OpenMontageProtocolVersion.UNSPECIFIED, (
+            f"{ctx}: default version must be UNSPECIFIED"
+        )
+        v = msg.to_dict()["version"]
+        assert v == "unspecified", (
+            f"{ctx}(default): version must serialize to 'unspecified', got {v!r}"
+        )
+        assert isinstance(v, str), f"{ctx}(default): version must be a string"

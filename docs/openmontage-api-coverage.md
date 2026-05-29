@@ -180,3 +180,42 @@ Character-animation artifacts (`character_design`, `rig_plan`, `pose_library`,
 `action_timeline`, and `character_qa_report`) are covered by the same
 `OpenMontageArtifactPayload` mechanism.
 
+## Cross-Language Codec Behavior (intentional, tested divergences)
+
+The Rust and Python codecs are deliberately NOT byte-identical in two
+edge-case behaviors. Both behaviors are intentional and locked down by tests
+(`generated/rust/tests/openmontage_contract.rs` and
+`generated/python/test_openmontage_golden_vectors.py`). They are recorded here
+so future codec edits do not "accidentally fix" one side into the other.
+
+### Unknown enum tokens: Rust rejects, Python coerces (R-PROTO-04)
+
+An OpenMontage enum has two codec layers, and they behave differently on an
+**unknown** wire token (one not in the declared variant set):
+
+| Layer | Rust | Python |
+| --- | --- | --- |
+| Bare enum codec | `Enum::from_json_str("bogus") == None` (strict; caller decides) | `Enum.from_json("bogus") == Enum.UNSPECIFIED` (coerces) |
+| Message layer (e.g. `OpenMontageJobEvent.status` / `.event_type`) | `serde_json::from_str::<…>(…)` returns `Err` whose message contains `"unknown variant"` — the whole message is **rejected** | `OpenMontageJobEvent.from_json(…)` returns a struct with that enum field = `UNSPECIFIED`; **no error** |
+
+Rationale: the Rust service is the strict contract-handoff boundary — a peer
+sending an unrecognized/forward-version `status` or `event_type` is rejected
+loudly rather than silently downgraded to `UNSPECIFIED` (which could mask a
+protocol-version mismatch). The Python codec is a tolerant forward-compatible
+reader and coerces unknown tokens to `UNSPECIFIED`. This is a tested decision,
+not an oversight; do not make the Rust message layer coerce, and do not make
+the Python message layer raise, without revisiting this note and its tests.
+
+### Optional fields: omit vs explicit `null` are equivalent (R-PROTO-05)
+
+An OpenMontage `optional` field may appear on the wire as an **omitted key** or
+as an explicit `"field": null`. Both forms deserialize to the **same** value
+(the field absent / `None`) on both languages, and both round-trip
+consistently. On serialization, an absent optional is OMITTED from the wire
+form on both sides (Rust via prost's skip-`None`-`Option` behavior; Python via
+`_omit_none`, which uses a presence test — `value is not None` — not a
+truthiness test, per the B19 fix). The omit-vs-null distinction is therefore a
+cosmetic inbound wire-form difference only; both sides read both forms and emit
+the canonical omitted form. Unknown extra keys (forward-compat: a field a newer
+peer added) are ignored — not rejected — on both languages.
+

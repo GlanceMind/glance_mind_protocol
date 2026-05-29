@@ -1179,3 +1179,268 @@ fn prop_pipeline_manifest_roundtrips() {
         |x| assert_json_roundtrip(&x),
     );
 }
+
+// ===========================================================================
+// T10-4 (R-PROTO-04): unknown-enum behavior at BOTH layers.
+//
+// There are two distinct codec layers and they behave DIFFERENTLY on an
+// unknown enum token; both behaviors are intentional and asserted here.
+//
+//   * BARE codec (`Enum::from_json_str`): a STRICT parser returning
+//     `Option<Self>`. An unknown token -> `None` (the `_ => None` arm). This is
+//     the primitive used everywhere else and must never silently coerce.
+//   * MESSAGE layer (serde `Deserialize` on a message that carries the enum
+//     via the `serde_helpers` adapter): an unknown token is a hard `Err`
+//     ("unknown variant: <token>"). This is the contract-handoff boundary: a
+//     malformed/forward-version event from a peer is REJECTED on the Rust side
+//     rather than silently downgraded.
+//
+// The companion Python codec instead COERCES unknown tokens to UNSPECIFIED at
+// both layers (see test_openmontage_golden_vectors.py). That Rust-rejects /
+// Python-coerces divergence is recorded as an intentional, tested decision in
+// docs/openmontage-api-coverage.md.
+// ===========================================================================
+
+#[test]
+fn unknown_enum_bare_codec_returns_none() {
+    // Strict bare codec: an unknown token is `None`, NOT a coerced default.
+    // Exercised on 2 of the 6 enums (JobStatus + EventType); the others share
+    // the identical generated `_ => None` arm.
+    assert_eq!(
+        OpenMontageJobStatus::from_json_str("bogus"),
+        None,
+        "bare OpenMontageJobStatus::from_json_str must return None for an unknown token"
+    );
+    assert_eq!(
+        OpenMontageEventType::from_json_str("not_a_real_event"),
+        None,
+        "bare OpenMontageEventType::from_json_str must return None for an unknown token"
+    );
+    // Sanity: a KNOWN token still parses (guards against a strategy that makes
+    // everything None, which would pass the assertions above vacuously).
+    assert_eq!(
+        OpenMontageJobStatus::from_json_str("running"),
+        Some(OpenMontageJobStatus::Running),
+        "a known token must still parse on the bare codec"
+    );
+}
+
+#[test]
+fn unknown_enum_message_layer_is_rejected() {
+    // Message layer: an unknown enum token anywhere in a message is a hard
+    // deserialize Err whose message contains "unknown variant". This is the
+    // Rust side of the documented Rust-rejects / Python-coerces divergence.
+    //
+    // The OpenMontage message structs are NOT `#[serde(default)]`, so serde
+    // requires every non-optional field. We therefore build a COMPLETE, valid
+    // JobEvent JSON (by serializing a default instance, which emits every
+    // required field), then overwrite exactly ONE enum field with a bogus
+    // token. That isolates the unknown-variant Err to the enum token and not to
+    // a missing field, and is robust to future field additions.
+    let valid: serde_json::Map<String, serde_json::Value> =
+        serde_json::to_value(OpenMontageJobEvent::default())
+            .expect("serialize a default JobEvent")
+            .as_object()
+            .expect("JobEvent serializes to a JSON object")
+            .clone();
+
+    // (a) unknown `status` token.
+    let mut bad_status = valid.clone();
+    bad_status.insert(
+        "status".to_string(),
+        serde_json::Value::String("bogus_status".to_string()),
+    );
+    let err = serde_json::from_value::<OpenMontageJobEvent>(serde_json::Value::Object(bad_status))
+        .expect_err("an unknown `status` token must be rejected by the Rust message codec");
+    assert!(
+        err.to_string().contains("unknown variant"),
+        "unknown-status error should mention 'unknown variant', got: {err}"
+    );
+
+    // (b) unknown `event_type` token (a different adapter on the same message).
+    let mut bad_event = valid.clone();
+    bad_event.insert(
+        "event_type".to_string(),
+        serde_json::Value::String("teleportation_completed".to_string()),
+    );
+    let err = serde_json::from_value::<OpenMontageJobEvent>(serde_json::Value::Object(bad_event))
+        .expect_err("an unknown `event_type` token must be rejected by the Rust message codec");
+    assert!(
+        err.to_string().contains("unknown variant"),
+        "unknown-event_type error should mention 'unknown variant', got: {err}"
+    );
+
+    // Control: the SAME complete message with only KNOWN tokens deserializes
+    // cleanly, proving the Err above is caused by the unknown token and not by
+    // some unrelated structural problem.
+    let mut good = valid.clone();
+    good.insert(
+        "status".to_string(),
+        serde_json::Value::String("running".to_string()),
+    );
+    good.insert(
+        "event_type".to_string(),
+        serde_json::Value::String("job_status_changed".to_string()),
+    );
+    let parsed = serde_json::from_value::<OpenMontageJobEvent>(serde_json::Value::Object(good))
+        .expect("a message with only known enum tokens must deserialize");
+    assert_eq!(parsed.status, OpenMontageJobStatus::Running as i32);
+    assert_eq!(parsed.event_type, OpenMontageEventType::JobStatusChanged as i32);
+}
+
+// ===========================================================================
+// T10-5 (R-PROTO-05): unknown-field tolerance + omit-vs-null optional parity.
+//
+//   * Forward-compat: a message JSON carrying an EXTRA unknown key (a field a
+//     newer peer added) is IGNORED — the message still deserializes. serde's
+//     default (no `deny_unknown_fields`) drops unrecognized keys.
+//   * Omit-vs-null: an `optional` proto field may arrive as an OMITTED key or
+//     as an explicit `null`. Both forms must deserialize to the SAME value
+//     (the field absent / `None`) and round-trip identically. This is a
+//     cosmetic wire-form difference; both sides read both forms (recorded in
+//     docs/openmontage-api-coverage.md).
+// ===========================================================================
+
+#[test]
+fn unknown_field_is_ignored() {
+    // Extra unknown key on a leaf message (required: kind/role/uri).
+    let asset = serde_json::json!({
+        "kind": "audio", "role": "narration", "uri": "u",
+        "future_field": 123
+    });
+    let parsed = serde_json::from_value::<OpenMontageInputAsset>(asset)
+        .expect("an unknown extra key must be ignored, not rejected");
+    assert_eq!(parsed.kind, OpenMontageInputAssetKind::Audio as i32);
+    assert_eq!(parsed.role, "narration");
+
+    // Extra unknown key on a top-level message too. Build a COMPLETE valid PVR
+    // (serialize a default, which emits every required field), set a couple of
+    // identifying fields, then inject an unknown key.
+    let mut req: serde_json::Map<String, serde_json::Value> =
+        serde_json::to_value(OpenMontageProfessionalVideoRequest::default())
+            .expect("serialize default PVR")
+            .as_object()
+            .expect("PVR serializes to a JSON object")
+            .clone();
+    req.insert(
+        "version".to_string(),
+        serde_json::Value::String("v1".to_string()),
+    );
+    req.insert(
+        "request_id".to_string(),
+        serde_json::Value::String("r1".to_string()),
+    );
+    req.insert(
+        "future_field".to_string(),
+        serde_json::json!({"nested": [1, 2, 3]}),
+    );
+    let parsed = serde_json::from_value::<OpenMontageProfessionalVideoRequest>(
+        serde_json::Value::Object(req),
+    )
+    .expect("an unknown extra key on a top-level message must be ignored");
+    assert_eq!(parsed.request_id, "r1");
+    assert_eq!(parsed.version, OpenMontageProtocolVersion::V1 as i32);
+}
+
+#[test]
+fn optional_omit_vs_null_yield_same_value() {
+    // `OpenMontageInputAsset.mime_type` is `optional string` (-> Option<String>).
+    // Form A: key omitted entirely.
+    let omitted = serde_json::json!({"kind": "audio", "role": "r", "uri": "u"});
+    // Form B: key present but explicitly null.
+    let explicit_null = serde_json::json!({"kind": "audio", "role": "r", "uri": "u", "mime_type": null});
+
+    let a = serde_json::from_value::<OpenMontageInputAsset>(omitted)
+        .expect("omitted optional must deserialize");
+    let b = serde_json::from_value::<OpenMontageInputAsset>(explicit_null)
+        .expect("explicit-null optional must deserialize");
+
+    // Both forms collapse to the same absent value...
+    assert_eq!(a.mime_type, None, "omitted optional must be None");
+    assert_eq!(b.mime_type, None, "explicit-null optional must also be None");
+    // ...and produce structurally identical messages.
+    assert_eq!(
+        a, b,
+        "omit-vs-null optional must deserialize to the SAME value"
+    );
+
+    // Round-trip consistency: re-serializing either form yields the canonical
+    // wire form, and re-parsing it lands back on the same value.
+    let reserialized = serde_json::to_value(&a).expect("serialize back to Value");
+    let reparsed = serde_json::from_value::<OpenMontageInputAsset>(reserialized)
+        .expect("re-parse of canonical form");
+    assert_eq!(a, reparsed, "round-trip must be stable for the absent optional");
+}
+
+// ===========================================================================
+// T10-6 (R-PROTO-06): `version` default + string emission.
+//
+// The proto `version` field is generated as `i32`, but the production wire
+// format is the lowercase STRING token (via the `openmontage_protocol_version`
+// serde adapter). It MUST serialize as `"version":"v1"` (string) for `V1` and
+// `"version":"unspecified"` for the defaulted/UNSPECIFIED value — NEVER the raw
+// int `1`/`0`. Asserted on two messages that carry `version`
+// (ProfessionalVideoRequest + JobEvent).
+// ===========================================================================
+
+#[test]
+fn version_serializes_as_string_token_not_int() {
+    // Helper: assert the `version` key of a serialized message equals the given
+    // JSON string token (and is therefore a JSON string, never an int).
+    fn assert_version_token(value: &serde_json::Value, expected: &str, ctx: &str) {
+        let v = value
+            .get("version")
+            .unwrap_or_else(|| panic!("{ctx}: serialized message has no `version` key"));
+        assert_eq!(
+            v,
+            &serde_json::Value::String(expected.to_string()),
+            "{ctx}: version must serialize as the string {expected:?}, not {v} \
+             (a raw int {expected:?} would be a wire-format regression)"
+        );
+        assert!(
+            v.is_string(),
+            "{ctx}: version must be a JSON string, got {v}"
+        );
+    }
+
+    // --- version = V1 -> "v1" ---
+    let req = OpenMontageProfessionalVideoRequest {
+        version: OpenMontageProtocolVersion::V1 as i32,
+        ..Default::default()
+    };
+    let req_json = serde_json::to_value(&req).expect("serialize PVR");
+    assert_version_token(&req_json, "v1", "ProfessionalVideoRequest(V1)");
+
+    let event = OpenMontageJobEvent {
+        version: OpenMontageProtocolVersion::V1 as i32,
+        ..Default::default()
+    };
+    let event_json = serde_json::to_value(&event).expect("serialize JobEvent");
+    assert_version_token(&event_json, "v1", "JobEvent(V1)");
+
+    // Belt-and-braces on the STRING codec too (the literal wire bytes): the
+    // substring `"version":"v1"` appears and the int form `"version":1` does not.
+    let req_str = serde_json::to_string(&req).expect("PVR to_string");
+    assert!(
+        req_str.contains("\"version\":\"v1\""),
+        "PVR JSON string must contain \"version\":\"v1\", got: {req_str}"
+    );
+    assert!(
+        !req_str.contains("\"version\":1"),
+        "PVR JSON must NOT emit the int form \"version\":1, got: {req_str}"
+    );
+
+    // --- defaulted / UNSPECIFIED -> "unspecified" ---
+    let default_req = OpenMontageProfessionalVideoRequest::default();
+    assert_eq!(
+        default_req.version,
+        OpenMontageProtocolVersion::Unspecified as i32,
+        "default PVR version tag must be UNSPECIFIED (0)"
+    );
+    let default_json = serde_json::to_value(&default_req).expect("serialize default PVR");
+    assert_version_token(&default_json, "unspecified", "ProfessionalVideoRequest(default)");
+
+    let default_event = OpenMontageJobEvent::default();
+    let default_event_json = serde_json::to_value(&default_event).expect("serialize default JobEvent");
+    assert_version_token(&default_event_json, "unspecified", "JobEvent(default)");
+}
