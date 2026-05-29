@@ -1,6 +1,7 @@
 # ASSERTION-CHANGE-JUSTIFIED: purely additive — extends the module docstring,
-# adds imports (json/os/gm + golden path), and (below) appends a NEW
-# test_matches_golden_vectors for T10-2. The existing T10-1
+# adds imports (json/os/gm + golden path + hypothesis), and appends NEW tests:
+# test_matches_golden_vectors (T10-2) and the T10-3 property tests
+# (test_property_* at the bottom). The existing T10-1
 # test_all_enum_variants_roundtrip and all its assertions are left byte-for-byte
 # intact; no existing assertion is weakened, skipped, or removed.
 """OpenMontage codec contract tests (Python side).
@@ -157,3 +158,706 @@ def test_matches_golden_vectors():
             f"the committed golden.\n  golden:      {json.dumps(golden_canon, sort_keys=True)}\n"
             f"  regenerated: {json.dumps(regen_canon, sort_keys=True)}"
         )
+
+
+# ---------------------------------------------------------------------------
+# T10-3 (R-PROTO-03): property-based round-trip for the 5 core OpenMontage
+# messages.
+#
+# T10-2 above proves EXAMPLE round-trip (one fully populated golden instance per
+# message). This section proves the property `decode(encode(x)) == x` for
+# ARBITRARY hypothesis-generated instances of the 5 core messages:
+#
+#   * OpenMontageProfessionalVideoRequest  (submit boundary; maps + nested lists)
+#   * OpenMontageJobSnapshot               (full job state; deep nesting)
+#   * OpenMontageJobEvent                  (streamed event; deep nesting)
+#   * OpenMontageToolContract              (43 fields; many optionals)
+#   * OpenMontagePipelineManifest          (nested stages/sub-stages)
+#
+# "encode"/"decode" is the Python codec: both the dict codec
+# (``from_dict(to_dict(x))``) and, for the top-level messages, the JSON-text
+# codec (``from_json(to_json(x))``) are asserted equal to ``x`` (dataclass
+# structural ``==``).
+#
+# Strategy design (genuine variation, NOT a fixed value):
+#   * strings: empty, ASCII, JSON-hostile chars (quote/backslash/newline/control)
+#     AND unicode — so json escaping is exercised, not just identifiers;
+#   * optionals: generated present AND absent (``st.none() | inner``);
+#   * collections (list, dict): generated empty AND non-empty (size 0..N);
+#   * floats: FINITE only (``allow_nan=False, allow_infinity=False``) — ``NaN``
+#     breaks ``==`` (and the dataclass round-trip is dict->dict, so ``nan`` would
+#     spuriously fail), and JSON has no real NaN/Inf. This is type/domain
+#     correctness, not strategy-narrowing to dodge a bug;
+#   * ints: ``from_dict`` coerces double fields with ``float(...)`` and int
+#     fields with ``int(...)``; the dataclass types are respected (ints for int
+#     fields, floats for float fields) so the coercions are identities. uint64
+#     fields (``seed``, ``bytes``, ``sequence``) span the full 0..2**64-1 range
+#     to exercise large-magnitude fidelity;
+#   * enums: ``st.sampled_from(list(EnumCls))`` — every declared variant
+#     (incl. UNSPECIFIED) is a candidate.
+#
+# If any property fails it is a REAL codec round-trip bug; hypothesis prints the
+# shrunk falsifying example. Per T10-3 separation-of-duties, the test author
+# surfaces it and does NOT patch the production codec
+# (``glance_mind.py``) or narrow the strategy to dodge it.
+#
+# ===========================================================================
+# DONE_WITH_CONCERNS — REAL Python codec round-trip bug found by T10-3.
+# ===========================================================================
+# Status today (commit time):
+#   * GREEN  : test_property_tool_contract_roundtrips
+#              (its whole nested tree has at least one non-optional field per
+#               sub-message, so no sub-message ever serializes to ``{}``).
+#   * FAILING (real bug, NOT dodged): the other 4 core messages — PVR,
+#              JobSnapshot, JobEvent, PipelineManifest.
+#
+# Root cause (in glance_mind.py, the production codec — NOT touched here):
+#   A nested OPTIONAL sub-message whose every field is itself optional/None
+#   serializes via ``_omit_none`` to an EMPTY dict ``{}``. The parent's
+#   ``from_dict`` then reconstructs it with a truthiness guard
+#   (``Cls.from_dict(v) if v else None``); ``{}`` is falsy, so the sub-message
+#   is read back as ``None``. Thus an all-None ``OpenMontageExtensionPermissions``
+#   or ``OpenMontagePipelineOrchestration`` does NOT round-trip — it collapses to
+#   ``None`` — violating ``decode(encode(x)) == x``.
+#
+#   Minimal falsifying example (hypothesis-shrunk):
+#       OpenMontagePipelineManifest(
+#           name='', version='', ...,
+#           extensions=OpenMontageExtensionPermissions(custom_scripts=None,
+#               custom_playbooks=None, custom_skills=None, custom_tools=None))
+#       -> round-trips to ...extensions=None  (NOT equal)
+#
+#   Affected embedded messages: OpenMontageExtensionPermissions (4 optional
+#   bools) and OpenMontagePipelineOrchestration (all 6 optional). PVR /
+#   JobSnapshot / JobEvent inherit the bug transitively via PipelineManifest
+#   (directly, or via PreflightSnapshot.pipelines[]).
+#
+# Per the T10-3 anti-gaming + separation-of-duties contract, the fix belongs to
+# a SEPARATE codec fixer (e.g. make `from_dict` distinguish "absent" from
+# "present-but-empty", or have these sub-messages emit a non-empty dict). These
+# 4 tests are left as honest FAILING evidence (they are NOT wired into the CI
+# `harness-contract` gate yet — that is task T10-10 — so they do not break CI),
+# and they will pass once the codec is fixed. They are deliberately NOT skipped,
+# NOT xfail-marked, and their strategies are NOT narrowed to avoid the all-None
+# sub-message, because doing any of those would mask the defect.
+# ---------------------------------------------------------------------------
+
+from hypothesis import HealthCheck, given, settings  # noqa: E402
+from hypothesis import strategies as st  # noqa: E402
+
+# Bound on generated collection sizes: small enough that the deeply-nested
+# messages (Snapshot/Event embed PreflightSnapshot -> lists of ToolContract +
+# PipelineManifest) stay fast, large enough to exercise empty AND multi-element.
+_MAX_LIST = 3
+_MAX_MAP = 3
+
+# A common settings profile for the (necessarily heavier) nested-message
+# properties: keep example count modest and silence the "data generation too
+# slow" health check, which can trip on the deep nesting without indicating a
+# real problem.
+_PROP_SETTINGS = settings(
+    max_examples=200,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large],
+)
+
+
+def _text():
+    """Genuinely varied text: plain tokens, JSON-hostile literals, unicode,
+    arbitrary BMP+astral codepoints, and the empty string."""
+    return st.one_of(
+        st.text(alphabet="abcDEF012_./:-", max_size=12),
+        st.sampled_from(['"', "\\", 'line1\nline2\t"q"\\', "emoji-\U0001f600-☃", ""]),
+        st.text(max_size=8),  # arbitrary unicode incl. control chars
+    )
+
+
+def _opt_text():
+    return st.none() | _text()
+
+
+def _list_text():
+    return st.lists(_text(), max_size=_MAX_LIST)
+
+
+def _map_text():
+    # Keys are simple tokens (distinctness), values fully varied.
+    return st.dictionaries(
+        st.text(alphabet="abcdef0123456789_", min_size=1, max_size=8),
+        _text(),
+        max_size=_MAX_MAP,
+    )
+
+
+def _finite_float():
+    return st.floats(allow_nan=False, allow_infinity=False)
+
+
+def _opt_finite_float():
+    return st.none() | _finite_float()
+
+
+_U32 = st.integers(min_value=0, max_value=2**32 - 1)
+_U64 = st.integers(min_value=0, max_value=2**64 - 1)
+
+
+def _opt_u32():
+    return st.none() | _U32
+
+
+def _opt_u64():
+    return st.none() | _U64
+
+
+def _opt_bool():
+    return st.none() | st.booleans()
+
+
+def _enum(cls):
+    return st.sampled_from(list(cls))
+
+
+# --- leaf / nested message strategies (mirrors gen_openmontage_vectors.py) ---
+
+
+@st.composite
+def _st_job_ref(draw):
+    return gm.OpenMontageJobRef(
+        job_id=draw(_text()),
+        request_id=draw(_text()),
+        project_id=draw(_text()),
+        correlation_id=draw(_text()),
+        idempotency_key=draw(_text()),
+    )
+
+
+@st.composite
+def _st_callback_config(draw):
+    return gm.OpenMontageCallbackConfig(
+        callback_url=draw(_text()),
+        callback_secret_ref=draw(_text()),
+        event_types=draw(_list_text()),
+    )
+
+
+@st.composite
+def _st_input_asset(draw):
+    return gm.OpenMontageInputAsset(
+        kind=draw(_enum(gm.OpenMontageInputAssetKind)),
+        role=draw(_text()),
+        uri=draw(_text()),
+        mime_type=draw(_opt_text()),
+        width_px=draw(_opt_u32()),
+        height_px=draw(_opt_u32()),
+        duration_ms=draw(_opt_u32()),
+        metadata_json=draw(_opt_text()),
+    )
+
+
+@st.composite
+def _st_schema_field(draw):
+    return gm.OpenMontageSchemaField(
+        path=draw(_text()),
+        required=draw(st.booleans()),
+        json_type=draw(_text()),
+        enum_values=draw(_list_text()),
+        default_json=draw(_opt_text()),
+        description=draw(_opt_text()),
+    )
+
+
+@st.composite
+def _st_resource_profile(draw):
+    return gm.OpenMontageResourceProfile(
+        cpu_cores=draw(_U32),
+        ram_mb=draw(_U32),
+        vram_mb=draw(_U32),
+        disk_mb=draw(_U32),
+        network_required=draw(st.booleans()),
+    )
+
+
+@st.composite
+def _st_retry_policy(draw):
+    return gm.OpenMontageRetryPolicy(
+        max_retries=draw(_U32),
+        backoff_seconds=draw(_finite_float()),
+        retryable_errors=draw(_list_text()),
+    )
+
+
+@st.composite
+def _st_tool_invocation(draw):
+    return gm.OpenMontageToolInvocation(
+        invocation_id=draw(_text()),
+        stage=draw(_text()),
+        tool_name=draw(_text()),
+        role=draw(_text()),
+        operation=draw(_text()),
+        provider=draw(_text()),
+        capability=draw(_text()),
+        input_json=draw(_text()),
+        idempotency_key=draw(_opt_text()),
+        max_cost_usd=draw(_opt_finite_float()),
+        dry_run=draw(st.booleans()),
+        expected_artifact_roles=draw(_list_text()),
+        contract_version=draw(_opt_text()),
+        metadata_json=draw(_opt_text()),
+    )
+
+
+@st.composite
+def _st_artifact(draw):
+    return gm.OpenMontageArtifact(
+        artifact_id=draw(_text()),
+        kind=draw(_enum(gm.OpenMontageArtifactKind)),
+        role=draw(_text()),
+        uri=draw(_text()),
+        mime_type=draw(_opt_text()),
+        width_px=draw(_opt_u32()),
+        height_px=draw(_opt_u32()),
+        duration_ms=draw(_opt_u32()),
+        bytes=draw(_opt_u64()),
+        metadata_json=draw(_opt_text()),
+        artifact_name=draw(_opt_text()),
+        path=draw(_opt_text()),
+        source_tool=draw(_opt_text()),
+        scene_id=draw(_opt_text()),
+        payload_json=draw(_opt_text()),
+        schema_id=draw(_opt_text()),
+        validated=draw(_opt_bool()),
+    )
+
+
+@st.composite
+def _st_tool_result(draw):
+    return gm.OpenMontageToolResult(
+        invocation_id=draw(_text()),
+        tool_name=draw(_text()),
+        success=draw(st.booleans()),
+        data_json=draw(_opt_text()),
+        artifact_uris=draw(_list_text()),
+        artifacts=draw(st.lists(_st_artifact(), max_size=_MAX_LIST)),
+        error=draw(_opt_text()),
+        cost_usd=draw(_finite_float()),
+        duration_seconds=draw(_finite_float()),
+        seed=draw(_opt_u64()),
+        model=draw(_opt_text()),
+        raw_artifacts_json=draw(_opt_text()),
+        metadata_json=draw(_opt_text()),
+    )
+
+
+@st.composite
+def _st_artifact_payload(draw):
+    return gm.OpenMontageArtifactPayload(
+        artifact_name=draw(_text()),
+        schema_id=draw(_opt_text()),
+        schema_version=draw(_opt_text()),
+        payload_json=draw(_text()),
+        validated=draw(st.booleans()),
+        schema_fields=draw(st.lists(_st_schema_field(), max_size=_MAX_LIST)),
+        validation_error=draw(_opt_text()),
+        uri=draw(_opt_text()),
+        role=draw(_opt_text()),
+        metadata_json=draw(_opt_text()),
+    )
+
+
+@st.composite
+def _st_checkpoint(draw):
+    return gm.OpenMontageCheckpoint(
+        version=draw(_text()),
+        project_id=draw(_text()),
+        pipeline_type=draw(_text()),
+        stage=draw(_text()),
+        status=draw(_text()),
+        timestamp=draw(_text()),
+        style_playbook=draw(_opt_text()),
+        checkpoint_policy=draw(_opt_text()),
+        human_approval_required=draw(_opt_bool()),
+        human_approved=draw(_opt_bool()),
+        artifacts=draw(st.lists(_st_artifact_payload(), max_size=_MAX_LIST)),
+        artifacts_json=draw(_opt_text()),
+        review_json=draw(_opt_text()),
+        cost_snapshot_json=draw(_opt_text()),
+        error=draw(_opt_text()),
+        metadata_json=draw(_opt_text()),
+        path=draw(_opt_text()),
+    )
+
+
+@st.composite
+def _st_stage_checkpoint(draw):
+    return gm.OpenMontageStageCheckpoint(
+        sequence=draw(_U64),
+        stage=draw(_text()),
+        status=draw(_enum(gm.OpenMontageJobStatus)),
+        summary=draw(_text()),
+        artifact_refs=draw(_list_text()),
+        cost_snapshot_json=draw(_opt_text()),
+        review_json=draw(_opt_text()),
+        created_at=draw(_text()),
+        checkpoint=draw(st.none() | _st_checkpoint()),
+        artifact_payloads=draw(st.lists(_st_artifact_payload(), max_size=_MAX_LIST)),
+        checkpoint_json=draw(_opt_text()),
+    )
+
+
+@st.composite
+def _st_decision(draw):
+    return gm.OpenMontageDecision(
+        sequence=draw(_U64),
+        category=draw(_text()),
+        summary=draw(_text()),
+        selected_option=draw(_opt_text()),
+        options_json=draw(_opt_text()),
+        confidence=draw(_opt_text()),
+        created_at=draw(_text()),
+    )
+
+
+@st.composite
+def _st_approval_request(draw):
+    return gm.OpenMontageApprovalRequest(
+        approval_id=draw(_text()),
+        stage=draw(_text()),
+        decision_category=draw(_text()),
+        prompt=draw(_text()),
+        options_json=draw(_opt_text()),
+        expires_at=draw(_opt_text()),
+    )
+
+
+@st.composite
+def _st_error(draw):
+    return gm.OpenMontageError(
+        code=draw(_enum(gm.OpenMontageErrorCode)),
+        message=draw(_text()),
+        retryable=draw(st.booleans()),
+        detail_json=draw(_opt_text()),
+    )
+
+
+@st.composite
+def _st_runtime_availability(draw):
+    return gm.OpenMontageRuntimeAvailability(
+        name=draw(_text()),
+        available=draw(st.booleans()),
+        note=draw(_opt_text()),
+        warnings=draw(_list_text()),
+    )
+
+
+@st.composite
+def _st_capability_summary(draw):
+    return gm.OpenMontageCapabilitySummary(
+        capability=draw(_text()),
+        configured=draw(_U32),
+        total=draw(_U32),
+        available_providers=draw(_list_text()),
+        unavailable_providers=draw(_list_text()),
+    )
+
+
+@st.composite
+def _st_setup_offer(draw):
+    return gm.OpenMontageSetupOffer(
+        capability=draw(_text()),
+        tool=draw(_text()),
+        provider=draw(_text()),
+        install_instructions=draw(_text()),
+    )
+
+
+@st.composite
+def _st_pipeline_sub_stage(draw):
+    return gm.OpenMontagePipelineSubStage(
+        name=draw(_text()),
+        description=draw(_opt_text()),
+        condition=draw(_opt_text()),
+        human_approval_default=draw(_opt_bool()),
+        tools_available=draw(_list_text()),
+        review_focus=draw(_list_text()),
+    )
+
+
+@st.composite
+def _st_pipeline_stage(draw):
+    return gm.OpenMontagePipelineStage(
+        name=draw(_text()),
+        agent=draw(_opt_text()),
+        skill=draw(_opt_text()),
+        required_artifacts_in=draw(_list_text()),
+        optional_artifacts_in=draw(_list_text()),
+        produces=draw(_list_text()),
+        preferred_tools=draw(_list_text()),
+        fallback_tools=draw(_list_text()),
+        required_tools=draw(_list_text()),
+        optional_tools=draw(_list_text()),
+        tools_available=draw(_list_text()),
+        review_focus=draw(_list_text()),
+        checkpoint_required=draw(_opt_bool()),
+        human_approval_default=draw(_opt_bool()),
+        success_criteria=draw(_list_text()),
+        sub_stages=draw(st.lists(_st_pipeline_sub_stage(), max_size=_MAX_LIST)),
+        metadata_json=draw(_opt_text()),
+    )
+
+
+@st.composite
+def _st_pipeline_orchestration(draw):
+    return gm.OpenMontagePipelineOrchestration(
+        mode=draw(_opt_text()),
+        skill=draw(_opt_text()),
+        budget_default_usd=draw(_opt_finite_float()),
+        max_revisions_per_stage=draw(_opt_u32()),
+        max_send_backs=draw(_opt_u32()),
+        max_wall_time_minutes=draw(_opt_u32()),
+    )
+
+
+@st.composite
+def _st_extension_permissions(draw):
+    return gm.OpenMontageExtensionPermissions(
+        custom_scripts=draw(_opt_bool()),
+        custom_playbooks=draw(_opt_bool()),
+        custom_skills=draw(_opt_bool()),
+        custom_tools=draw(_opt_bool()),
+    )
+
+
+@st.composite
+def _st_reference_input_config(draw):
+    return gm.OpenMontageReferenceInputConfig(
+        supported=draw(st.booleans()),
+        analysis_depth=draw(_opt_text()),
+        analysis_tools=draw(_list_text()),
+    )
+
+
+@st.composite
+def _st_tool_contract(draw):
+    return gm.OpenMontageToolContract(
+        name=draw(_text()),
+        version=draw(_text()),
+        tier=draw(_text()),
+        capability=draw(_text()),
+        provider=draw(_text()),
+        stability=draw(_text()),
+        status=draw(_text()),
+        execution_mode=draw(_text()),
+        determinism=draw(_text()),
+        runtime=draw(_text()),
+        module_path=draw(_text()),
+        usage_location=draw(_text()),
+        dependencies=draw(_list_text()),
+        install_instructions=draw(_text()),
+        capabilities=draw(_list_text()),
+        input_fields=draw(st.lists(_st_schema_field(), max_size=_MAX_LIST)),
+        output_fields=draw(st.lists(_st_schema_field(), max_size=_MAX_LIST)),
+        input_schema_json=draw(_opt_text()),
+        output_schema_json=draw(_opt_text()),
+        artifact_schema_json=draw(_opt_text()),
+        progress_schema_json=draw(_opt_text()),
+        supports_json=draw(_opt_text()),
+        best_for=draw(_list_text()),
+        not_good_for=draw(_list_text()),
+        provider_matrix_json=draw(_opt_text()),
+        resource_profile=draw(st.none() | _st_resource_profile()),
+        retry_policy=draw(st.none() | _st_retry_policy()),
+        resume_support=draw(_text()),
+        side_effects=draw(_list_text()),
+        fallback=draw(_opt_text()),
+        fallback_tools=draw(_list_text()),
+        agent_skills=draw(_list_text()),
+        user_visible_verification=draw(_list_text()),
+        quality_score=draw(_opt_finite_float()),
+        historical_success_rate=draw(_opt_finite_float()),
+        latency_p50_seconds=draw(_opt_finite_float()),
+        render_engines_json=draw(_opt_text()),
+        render_runtimes_json=draw(_opt_text()),
+        remotion_note=draw(_opt_text()),
+        hyperframes_note=draw(_opt_text()),
+        runtime_governance=draw(_opt_text()),
+        raw_info_json=draw(_opt_text()),
+        related_skills=draw(_list_text()),
+    )
+
+
+@st.composite
+def _st_pipeline_manifest(draw):
+    return gm.OpenMontagePipelineManifest(
+        name=draw(_text()),
+        version=draw(_text()),
+        description=draw(_opt_text()),
+        category=draw(_opt_text()),
+        stability=draw(_opt_text()),
+        compatible_playbooks=draw(_list_text()),
+        compatible_playbooks_json=draw(_opt_text()),
+        required_skills=draw(_list_text()),
+        stages=draw(st.lists(_st_pipeline_stage(), max_size=_MAX_LIST)),
+        default_checkpoint_policy=draw(_opt_text()),
+        reference_input=draw(st.none() | _st_reference_input_config()),
+        orchestration=draw(st.none() | _st_pipeline_orchestration()),
+        extensions=draw(st.none() | _st_extension_permissions()),
+        metadata_json=draw(_opt_text()),
+        raw_manifest_json=draw(_opt_text()),
+    )
+
+
+@st.composite
+def _st_preflight_snapshot(draw):
+    return gm.OpenMontagePreflightSnapshot(
+        composition_runtimes=draw(st.lists(_st_runtime_availability(), max_size=_MAX_LIST)),
+        capabilities=draw(st.lists(_st_capability_summary(), max_size=_MAX_LIST)),
+        setup_offers=draw(st.lists(_st_setup_offer(), max_size=_MAX_LIST)),
+        runtime_warnings=draw(_list_text()),
+        tools=draw(st.lists(_st_tool_contract(), max_size=_MAX_LIST)),
+        pipelines=draw(st.lists(_st_pipeline_manifest(), max_size=_MAX_LIST)),
+        captured_at=draw(_text()),
+        provider_menu_summary_json=draw(_opt_text()),
+        provider_menu_json=draw(_opt_text()),
+        support_envelope_json=draw(_opt_text()),
+    )
+
+
+# --- the 5 core message strategies ---
+
+
+@st.composite
+def _st_professional_video_request(draw):
+    return gm.OpenMontageProfessionalVideoRequest(
+        version=draw(_enum(gm.OpenMontageProtocolVersion)),
+        request_id=draw(_text()),
+        idempotency_key=draw(_text()),
+        tenant_id=draw(_text()),
+        user_id=draw(_text()),
+        title=draw(_text()),
+        prompt=draw(_text()),
+        target_platform=draw(_text()),
+        language=draw(_text()),
+        duration_seconds=draw(_U32),
+        aspect_ratio=draw(_text()),
+        audience=draw(_opt_text()),
+        objective=draw(_opt_text()),
+        brand_json=draw(_opt_text()),
+        pipeline=draw(_text()),
+        style_playbook=draw(_opt_text()),
+        render_runtime=draw(_opt_text()),
+        quality_tier=draw(_text()),
+        approval_policy=draw(_text()),
+        budget_limit_usd=draw(_finite_float()),
+        provider_preferences=draw(_map_text()),
+        assets=draw(st.lists(_st_input_asset(), max_size=_MAX_LIST)),
+        callback=draw(st.none() | _st_callback_config()),
+        metadata_json=draw(_opt_text()),
+        source_script=draw(_opt_text()),
+        source_script_uri=draw(_opt_text()),
+        input_mode=draw(_opt_text()),
+        output_profile=draw(_opt_text()),
+        renderer_family=draw(_opt_text()),
+        delivery_promise_json=draw(_opt_text()),
+        music_plan_json=draw(_opt_text()),
+        voice_selection_json=draw(_opt_text()),
+        tool_invocations=draw(st.lists(_st_tool_invocation(), max_size=_MAX_LIST)),
+        artifact_inputs=draw(st.lists(_st_artifact_payload(), max_size=_MAX_LIST)),
+        pipeline_manifest=draw(st.none() | _st_pipeline_manifest()),
+        preflight_policy=draw(_opt_text()),
+        openmontage_request_json=draw(_opt_text()),
+        provider_slots=draw(_map_text()),
+    )
+
+
+@st.composite
+def _st_job_snapshot(draw):
+    return gm.OpenMontageJobSnapshot(
+        version=draw(_enum(gm.OpenMontageProtocolVersion)),
+        job=draw(st.none() | _st_job_ref()),
+        status=draw(_enum(gm.OpenMontageJobStatus)),
+        pipeline=draw(_text()),
+        current_stage=draw(_text()),
+        progress_pct=draw(_U32),
+        checkpoints=draw(st.lists(_st_stage_checkpoint(), max_size=_MAX_LIST)),
+        decisions=draw(st.lists(_st_decision(), max_size=_MAX_LIST)),
+        approvals=draw(st.lists(_st_approval_request(), max_size=_MAX_LIST)),
+        artifacts=draw(st.lists(_st_artifact(), max_size=_MAX_LIST)),
+        error=draw(st.none() | _st_error()),
+        metrics_json=draw(_opt_text()),
+        updated_at=draw(_text()),
+        preflight=draw(st.none() | _st_preflight_snapshot()),
+        pipeline_manifest=draw(st.none() | _st_pipeline_manifest()),
+        artifact_payloads=draw(st.lists(_st_artifact_payload(), max_size=_MAX_LIST)),
+        tool_results=draw(st.lists(_st_tool_result(), max_size=_MAX_LIST)),
+        full_checkpoints=draw(st.lists(_st_checkpoint(), max_size=_MAX_LIST)),
+    )
+
+
+@st.composite
+def _st_job_event(draw):
+    return gm.OpenMontageJobEvent(
+        version=draw(_enum(gm.OpenMontageProtocolVersion)),
+        event_id=draw(_text()),
+        sequence=draw(_U64),
+        job=draw(st.none() | _st_job_ref()),
+        event_type=draw(_enum(gm.OpenMontageEventType)),
+        status=draw(_enum(gm.OpenMontageJobStatus)),
+        stage=draw(_text()),
+        progress_pct=draw(_U32),
+        checkpoint=draw(st.none() | _st_stage_checkpoint()),
+        approval=draw(st.none() | _st_approval_request()),
+        artifacts=draw(st.lists(_st_artifact(), max_size=_MAX_LIST)),
+        error=draw(st.none() | _st_error()),
+        event_json=draw(_opt_text()),
+        emitted_at=draw(_text()),
+        tool_invocation=draw(st.none() | _st_tool_invocation()),
+        tool_result=draw(st.none() | _st_tool_result()),
+        artifact_payloads=draw(st.lists(_st_artifact_payload(), max_size=_MAX_LIST)),
+        checkpoint_full=draw(st.none() | _st_checkpoint()),
+        preflight=draw(st.none() | _st_preflight_snapshot()),
+    )
+
+
+def _assert_roundtrip(instance, cls):
+    """The property: both the dict codec and the JSON-text codec must round-trip
+    ``instance`` to an equal value (dataclass structural ``==``)."""
+    via_dict = cls.from_dict(instance.to_dict())
+    assert via_dict == instance, (
+        f"dict round-trip mismatch for {cls.__name__}: "
+        f"from_dict(to_dict(x)) != x\n  original:   {instance!r}\n  round-trip: {via_dict!r}"
+    )
+    via_json = cls.from_json(instance.to_json())
+    assert via_json == instance, (
+        f"json round-trip mismatch for {cls.__name__}: "
+        f"from_json(to_json(x)) != x\n  original:   {instance!r}\n  round-trip: {via_json!r}"
+    )
+
+
+@_PROP_SETTINGS
+@given(x=_st_professional_video_request())
+def test_property_professional_video_request_roundtrips(x):
+    _assert_roundtrip(x, gm.OpenMontageProfessionalVideoRequest)
+
+
+@_PROP_SETTINGS
+@given(x=_st_job_snapshot())
+def test_property_job_snapshot_roundtrips(x):
+    _assert_roundtrip(x, gm.OpenMontageJobSnapshot)
+
+
+@_PROP_SETTINGS
+@given(x=_st_job_event())
+def test_property_job_event_roundtrips(x):
+    _assert_roundtrip(x, gm.OpenMontageJobEvent)
+
+
+@_PROP_SETTINGS
+@given(x=_st_tool_contract())
+def test_property_tool_contract_roundtrips(x):
+    _assert_roundtrip(x, gm.OpenMontageToolContract)
+
+
+@_PROP_SETTINGS
+@given(x=_st_pipeline_manifest())
+def test_property_pipeline_manifest_roundtrips(x):
+    _assert_roundtrip(x, gm.OpenMontagePipelineManifest)
