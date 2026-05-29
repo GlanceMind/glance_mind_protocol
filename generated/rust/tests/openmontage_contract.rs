@@ -1444,3 +1444,364 @@ fn version_serializes_as_string_token_not_int() {
     let default_event_json = serde_json::to_value(&default_event).expect("serialize default JobEvent");
     assert_version_token(&default_event_json, "unspecified", "JobEvent(default)");
 }
+
+// ===========================================================================
+// T10-7 (R-PROTO-07): numeric fidelity — uint64 + double.
+//
+// WIRE FORM (observed, not assumed): the OpenMontage uint64 fields (`sequence`,
+// `bytes`, `seed`) and double fields (`budget_limit_usd`, `cost_usd`, ...) carry
+// NO `#[serde(with = ...)]` adapter in the generated prost struct, so serde_json
+// emits them with its DEFAULT numeric encoding: a uint64 is a JSON **number**
+// (e.g. `"sequence":18446744073709551615`), NOT a quoted string; a double is a
+// JSON number (`"budget_limit_usd":3.0`).
+//
+// CROSS-LANGUAGE PRECISION FINDING (flagged, NOT a Rust/Python codec bug):
+// because uint64 is emitted as a bare JSON number, a consumer that parses JSON
+// numbers into an IEEE-754 double (notably JavaScript / TypeScript `Number`,
+// whose integers are exact only up to 2^53-1) would LOSE PRECISION for values
+// above 2^53. Rust (`u64`) and Python (arbitrary-precision `int`) both read the
+// number losslessly, so Rust<->Python parity holds; the hazard is purely for a
+// double-based third consumer. This is recorded in
+// docs/openmontage-api-coverage.md (it is a wire-contract property, not a defect
+// in either codec under test) and is asserted below via the `as f64` demo.
+//
+// For exact round-trip the assertions use the Value codec (`to_value` /
+// `from_value`) — the OpenMontage Rust round-trip contract per the T10-2 oracle
+// (f64-bit-exact). uint64 happens to also be string-codec-exact (serde_json's
+// INTEGER parser is exact; only its FLOAT parser has the ~1-ULP defect noted in
+// the T10-3 ASSERTION-CHANGE-JUSTIFIED block), and that is asserted too.
+// ===========================================================================
+
+#[test]
+fn numeric_uint64_emits_as_json_number_and_roundtrips_losslessly() {
+    // Values AT and BEYOND the 2^53 IEEE-754 exact-integer ceiling.
+    const TWO_53: u64 = 1u64 << 53; // 9_007_199_254_740_992
+    let cases: [u64; 4] = [TWO_53, TWO_53 + 1, u64::MAX - 1, u64::MAX];
+
+    for &n in &cases {
+        // --- WIRE FORM: uint64 is a JSON number, never a quoted string. ---
+        // Exercise it on three different uint64 fields across three messages:
+        //   * `sequence` (non-optional uint64, OpenMontageStageCheckpoint)
+        //   * `seed`     (optional uint64, OpenMontageToolResult)
+        //   * `bytes`    (optional uint64, OpenMontageArtifact)
+        let sc = OpenMontageStageCheckpoint {
+            sequence: n,
+            ..Default::default()
+        };
+        let sc_val = serde_json::to_value(&sc).expect("serialize StageCheckpoint");
+        let seq = sc_val
+            .get("sequence")
+            .expect("StageCheckpoint serialized without a `sequence` key");
+        assert!(
+            seq.is_number() && !seq.is_string(),
+            "uint64 `sequence` must serialize as a JSON number, not a string; got {seq} for n={n}"
+        );
+        assert_eq!(
+            seq.as_u64(),
+            Some(n),
+            "uint64 `sequence` JSON number must equal {n}, got {seq}"
+        );
+
+        let tr = OpenMontageToolResult {
+            seed: Some(n),
+            ..Default::default()
+        };
+        let tr_val = serde_json::to_value(&tr).expect("serialize ToolResult");
+        let seed = tr_val.get("seed").expect("ToolResult missing `seed` key");
+        assert!(
+            seed.is_number() && !seed.is_string(),
+            "optional uint64 `seed` must serialize as a JSON number, not a string; got {seed} for n={n}"
+        );
+        assert_eq!(
+            seed.as_u64(),
+            Some(n),
+            "uint64 `seed` JSON number must equal {n}"
+        );
+
+        let art = OpenMontageArtifact {
+            kind: OpenMontageArtifactKind::Video as i32,
+            bytes: Some(n),
+            ..Default::default()
+        };
+        let art_val = serde_json::to_value(&art).expect("serialize Artifact");
+        let bytes = art_val.get("bytes").expect("Artifact missing `bytes` key");
+        assert!(
+            bytes.is_number() && !bytes.is_string(),
+            "optional uint64 `bytes` must serialize as a JSON number, not a string; got {bytes} for n={n}"
+        );
+        assert_eq!(
+            bytes.as_u64(),
+            Some(n),
+            "uint64 `bytes` JSON number must equal {n}"
+        );
+
+        // --- LOSSLESS round-trip WITHIN Rust, via the Value codec (the
+        // contract path) AND via the string codec (uint64 is integer-exact). ---
+        let via_value: OpenMontageStageCheckpoint =
+            serde_json::from_value(sc_val.clone()).expect("StageCheckpoint Value round-trip");
+        assert_eq!(
+            via_value.sequence, n,
+            "uint64 `sequence` must round-trip losslessly via the Value codec for n={n}"
+        );
+        let via_string: OpenMontageStageCheckpoint =
+            serde_json::from_str(&serde_json::to_string(&sc).expect("StageCheckpoint to_string"))
+                .expect("StageCheckpoint string round-trip");
+        assert_eq!(
+            via_string.sequence, n,
+            "uint64 `sequence` must also round-trip losslessly via the string codec (integer \
+             parser is exact) for n={n}"
+        );
+
+        // --- The flagged cross-language precision hazard, asserted concretely:
+        // routing the SAME value through an IEEE-754 double (what a JS `Number`
+        // consumer does) loses precision once n > 2^53. This documents WHY the
+        // bare-JSON-number wire form is a cross-language finding, and proves the
+        // 2^53 boundary is where it bites. (Rust/Python are unaffected above.)
+        let through_f64 = n as f64 as u64;
+        if n <= TWO_53 {
+            assert_eq!(
+                through_f64, n,
+                "values up to 2^53 survive an f64 round-trip; n={n} should be exact"
+            );
+        } else if n == TWO_53 + 1 {
+            assert_ne!(
+                through_f64, n,
+                "n=2^53+1 must be CLOBBERED by an f64 round-trip — this is the documented JS \
+                 `Number` precision hazard of emitting uint64 as a bare JSON number"
+            );
+        }
+    }
+}
+
+#[test]
+fn numeric_double_integer_and_fractional_roundtrip_without_coercion_error() {
+    // A double field accepts BOTH an integer-valued JSON number (`3`) and a
+    // fractional one (`3.5`) without a type-coercion error, and both round-trip
+    // bit-exactly via the Value codec. Exercised on `budget_limit_usd`
+    // (ProfessionalVideoRequest) and `cost_usd` (ToolResult).
+
+    // Build COMPLETE valid objects (serialize a default, which emits every
+    // required field) so the ONLY thing under test is the double field — a bare
+    // `json!({...})` would fail on missing required strings, masking the point.
+    let pvr_base = serde_json::to_value(OpenMontageProfessionalVideoRequest::default())
+        .expect("serialize default PVR")
+        .as_object()
+        .expect("PVR serializes to an object")
+        .clone();
+    let tr_base = serde_json::to_value(OpenMontageToolResult::default())
+        .expect("serialize default ToolResult")
+        .as_object()
+        .expect("ToolResult serializes to an object")
+        .clone();
+
+    // (value-to-inject, expected f64)
+    let int_valued = (serde_json::json!(3), 3.0_f64);
+    let fractional = (serde_json::json!(3.5), 3.5_f64);
+
+    for (inject, expected) in [int_valued, fractional] {
+        let mut pvr_obj = pvr_base.clone();
+        pvr_obj.insert("budget_limit_usd".to_string(), inject.clone());
+        let pvr: OpenMontageProfessionalVideoRequest =
+            serde_json::from_value(serde_json::Value::Object(pvr_obj)).unwrap_or_else(|e| {
+                panic!("double `budget_limit_usd`={inject} must deserialize without a type error, got: {e}")
+            });
+        assert_eq!(
+            pvr.budget_limit_usd, expected,
+            "double `budget_limit_usd` from JSON {inject} must equal {expected}"
+        );
+        // Bit-exact Value round-trip of the parsed value.
+        let rt: OpenMontageProfessionalVideoRequest =
+            serde_json::from_value(serde_json::to_value(&pvr).expect("re-serialize PVR"))
+                .expect("PVR Value round-trip");
+        assert_eq!(
+            rt.budget_limit_usd, expected,
+            "double `budget_limit_usd` must round-trip bit-exactly via the Value codec ({expected})"
+        );
+
+        let mut tr_obj = tr_base.clone();
+        tr_obj.insert("cost_usd".to_string(), inject.clone());
+        let tr: OpenMontageToolResult = serde_json::from_value(serde_json::Value::Object(tr_obj))
+            .unwrap_or_else(|e| {
+                panic!("double `cost_usd`={inject} must deserialize without a type error, got: {e}")
+            });
+        assert_eq!(
+            tr.cost_usd, expected,
+            "double `cost_usd` from JSON {inject} must equal {expected}"
+        );
+    }
+}
+
+// ===========================================================================
+// T10-8 (R-PROTO-08): `*_json` escape-hatch fidelity.
+//
+// Fields such as `payload_json`, `metadata_json`, `input_json`, `raw_info_json`
+// carry NESTED JSON as an opaque STRING (the codec stores/forwards the text
+// verbatim; it does NOT parse it into a structured value). A non-trivial nested
+// JSON string — containing quotes, backslashes, newlines, unicode, nested
+// arrays/objects, and a `null` — must round-trip BYTE-STABLE: the exact string
+// bytes are preserved, and the wire field is a JSON string (not a re-parsed
+// object). Asserted via both the Value codec (contract path) and the string
+// codec.
+// ===========================================================================
+
+#[test]
+fn json_escape_hatch_nested_string_is_byte_stable() {
+    // A deliberately hostile embedded JSON document, rendered to its canonical
+    // string form. It includes a quote, a backslash, an embedded newline, an
+    // emoji (astral codepoint), a nested array+object, and an explicit null.
+    let embedded = serde_json::json!({
+        "a": [1, 2, {"b": "q\"uote", "c": "back\\slash", "n": "line1\nline2\ttab"}],
+        "u": "emoji-\u{1F600}-\u{2603}",
+        "z": null,
+        "deep": {"x": {"y": [true, false, "ünïcödé"]}}
+    })
+    .to_string();
+    // Sanity: the embedded value really is non-trivial (has escape-worthy chars).
+    assert!(
+        embedded.contains('"') && embedded.contains('\\') && embedded.len() > 40,
+        "the embedded JSON fixture must be non-trivial; got {embedded:?}"
+    );
+
+    // Carry it in two distinct `*_json` fields of the same message.
+    let art = OpenMontageArtifact {
+        kind: OpenMontageArtifactKind::Video as i32,
+        payload_json: Some(embedded.clone()),
+        metadata_json: Some(embedded.clone()),
+        ..Default::default()
+    };
+
+    // The wire field must be a JSON STRING, not a re-parsed nested object.
+    let wire = serde_json::to_value(&art).expect("serialize Artifact");
+    let payload_wire = wire
+        .get("payload_json")
+        .expect("Artifact serialized without `payload_json`");
+    assert!(
+        payload_wire.is_string(),
+        "`payload_json` must be carried as a JSON string (opaque escape-hatch), not a parsed \
+         object; got {payload_wire}"
+    );
+    assert_eq!(
+        payload_wire.as_str(),
+        Some(embedded.as_str()),
+        "`payload_json` wire string must be the embedded JSON verbatim"
+    );
+
+    // Byte-stable round-trip via the Value codec (the contract path)...
+    let via_value: OpenMontageArtifact =
+        serde_json::from_value(wire.clone()).expect("Artifact Value round-trip");
+    assert_eq!(
+        via_value.payload_json.as_deref(),
+        Some(embedded.as_str()),
+        "`payload_json` must round-trip byte-stable via the Value codec"
+    );
+    assert_eq!(
+        via_value.metadata_json.as_deref(),
+        Some(embedded.as_str()),
+        "`metadata_json` must round-trip byte-stable via the Value codec"
+    );
+
+    // ...and via the string codec (the literal wire bytes).
+    let via_string: OpenMontageArtifact =
+        serde_json::from_str(&serde_json::to_string(&art).expect("Artifact to_string"))
+            .expect("Artifact string round-trip");
+    assert_eq!(
+        via_string.payload_json.as_deref(),
+        Some(embedded.as_str()),
+        "`payload_json` must round-trip byte-stable via the string codec too"
+    );
+
+    // Control: the embedded text, parsed AS JSON, is itself valid and structured
+    // — proving the field really did carry a nested document (not a flat token)
+    // that the codec kept opaque rather than flattening.
+    let reparsed: serde_json::Value =
+        serde_json::from_str(via_value.payload_json.as_deref().unwrap())
+            .expect("the preserved `payload_json` string must itself be valid JSON");
+    assert!(
+        reparsed.get("a").is_some() && reparsed.get("deep").is_some(),
+        "the preserved embedded JSON must still parse back to the original structure"
+    );
+}
+
+// ===========================================================================
+// T10-9 (R-PROTO-09): map<string,string> round-trip.
+//
+// `provider_preferences` and `provider_slots` (proto `map<string,string>`) are
+// `HashMap<String,String>` in Rust. Round-trip with 0, 1, and N entries; assert
+// the map survives intact and that the EMPTY-map wire form is consistent (it is
+// emitted as `{}`, present-not-omitted, on both languages — see the Python
+// companion test). Comparison is on the `HashMap` itself, so it is key-order
+// independent.
+// ===========================================================================
+
+#[test]
+fn map_string_string_roundtrips_for_zero_one_and_many_entries() {
+    use std::collections::HashMap;
+
+    let zero: HashMap<String, String> = HashMap::new();
+    let one: HashMap<String, String> = HashMap::from([("only".to_string(), "value".to_string())]);
+    // N entries incl. JSON-hostile keys/values to stress escaping inside a map.
+    let many: HashMap<String, String> = HashMap::from([
+        ("alpha".to_string(), "1".to_string()),
+        ("beta".to_string(), "two".to_string()),
+        ("q\"k".to_string(), "back\\slash".to_string()),
+        ("uni-\u{1F600}".to_string(), "line1\nline2".to_string()),
+    ]);
+
+    for entries in [&zero, &one, &many] {
+        let pvr = OpenMontageProfessionalVideoRequest {
+            provider_preferences: entries.clone(),
+            provider_slots: entries.clone(),
+            ..Default::default()
+        };
+        let wire = serde_json::to_value(&pvr).expect("serialize PVR");
+
+        // The map is always PRESENT in the wire as a JSON object (even when
+        // empty -> `{}`); never null, never a non-object.
+        let pref_wire = wire
+            .get("provider_preferences")
+            .expect("PVR serialized without `provider_preferences`");
+        assert!(
+            pref_wire.is_object(),
+            "map `provider_preferences` must serialize to a JSON object (len={}); got {pref_wire}",
+            entries.len()
+        );
+        assert_eq!(
+            pref_wire.as_object().unwrap().len(),
+            entries.len(),
+            "serialized `provider_preferences` object must have {} entries",
+            entries.len()
+        );
+
+        // Round-trip via the Value codec (contract path); HashMap == is
+        // order-independent so key ordering cannot cause a spurious failure.
+        let rt: OpenMontageProfessionalVideoRequest =
+            serde_json::from_value(wire).expect("PVR Value round-trip");
+        assert_eq!(
+            &rt.provider_preferences,
+            entries,
+            "map `provider_preferences` must round-trip intact ({} entries)",
+            entries.len()
+        );
+        assert_eq!(
+            &rt.provider_slots,
+            entries,
+            "map `provider_slots` must round-trip intact ({} entries)",
+            entries.len()
+        );
+    }
+
+    // Empty-map consistency: the DEFAULT message (empty maps) emits `{}` for
+    // both map fields — present, not omitted — matching the Python codec.
+    let default_wire = serde_json::to_value(OpenMontageProfessionalVideoRequest::default())
+        .expect("serialize default PVR");
+    for key in ["provider_preferences", "provider_slots"] {
+        let v = default_wire
+            .get(key)
+            .unwrap_or_else(|| panic!("default PVR must emit an (empty) `{key}` object"));
+        assert_eq!(
+            v,
+            &serde_json::json!({}),
+            "an empty map `{key}` must serialize to `{{}}` (present, not omitted/null), got {v}"
+        );
+    }
+}

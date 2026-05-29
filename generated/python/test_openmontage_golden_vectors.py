@@ -1042,3 +1042,245 @@ def test_version_serializes_as_string_token_not_int():
             f"{ctx}(default): version must serialize to 'unspecified', got {v!r}"
         )
         assert isinstance(v, str), f"{ctx}(default): version must be a string"
+
+
+# ---------------------------------------------------------------------------
+# T10-7 (R-PROTO-07): numeric fidelity — uint64 + double (Python side).
+#
+# WIRE FORM (observed, not assumed): the Python codec stores uint64 fields
+# (``sequence``, ``bytes``, ``seed``) as plain ``int`` and emits them directly,
+# so ``json.dumps`` writes them as a JSON **number** (e.g.
+# ``"sequence": 18446744073709551615``), never a quoted string. Double fields
+# (``budget_limit_usd``, ``cost_usd``) are emitted as JSON numbers. This matches
+# the Rust codec's default serde encoding (see the Rust companion tests), so
+# Rust<->Python agree on the wire form.
+#
+# CROSS-LANGUAGE PRECISION FINDING (flagged, NOT a codec bug): because uint64 is
+# a bare JSON number, a consumer that parses JSON numbers into an IEEE-754 double
+# (JavaScript / TypeScript ``Number``, exact only to 2**53-1) would LOSE
+# PRECISION above 2**53. Python ``int`` is arbitrary-precision so it round-trips
+# losslessly; the hazard is for a double-based third consumer only. Recorded in
+# docs/openmontage-api-coverage.md.
+# ---------------------------------------------------------------------------
+
+_TWO_53 = 1 << 53  # 9_007_199_254_740_992 — IEEE-754 exact-integer ceiling
+_U64_MAX = 2**64 - 1
+
+
+def test_numeric_uint64_emits_as_json_number_and_roundtrips_losslessly():
+    # Values AT and BEYOND 2**53, plus the u64 ceiling.
+    cases = [_TWO_53, _TWO_53 + 1, _U64_MAX - 1, _U64_MAX]
+
+    for n in cases:
+        # `sequence` (non-optional uint64), `seed` (optional uint64),
+        # `bytes` (optional uint64): each emitted as a JSON number, not a string.
+        sc = gm.OpenMontageStageCheckpoint(sequence=n)
+        seq = sc.to_dict()["sequence"]
+        assert isinstance(seq, int) and not isinstance(seq, bool), (
+            f"uint64 `sequence` must be a JSON number (int), got {type(seq).__name__} for n={n}"
+        )
+        assert seq == n
+        # In the JSON text it is the bare number, never a quoted string.
+        sc_text = sc.to_json()
+        assert f'"sequence": {n}' in sc_text, (
+            f"uint64 `sequence` must appear as a bare JSON number in text, got: {sc_text}"
+        )
+        assert f'"sequence": "{n}"' not in sc_text, (
+            f"uint64 `sequence` must NOT be a quoted string in text, got: {sc_text}"
+        )
+
+        tr = gm.OpenMontageToolResult(seed=n)
+        seed = tr.to_dict()["seed"]
+        assert isinstance(seed, int) and not isinstance(seed, bool) and seed == n, (
+            f"optional uint64 `seed` must be a JSON number == {n}, got {seed!r}"
+        )
+
+        art = gm.OpenMontageArtifact(kind=gm.OpenMontageArtifactKind.VIDEO, bytes=n)
+        b = art.to_dict()["bytes"]
+        assert isinstance(b, int) and not isinstance(b, bool) and b == n, (
+            f"optional uint64 `bytes` must be a JSON number == {n}, got {b!r}"
+        )
+
+        # LOSSLESS round-trip within Python via both the dict and JSON codecs
+        # (Python int is arbitrary precision).
+        assert gm.OpenMontageStageCheckpoint.from_dict(sc.to_dict()).sequence == n, (
+            f"uint64 `sequence` must round-trip losslessly via the dict codec for n={n}"
+        )
+        assert gm.OpenMontageStageCheckpoint.from_json(sc.to_json()).sequence == n, (
+            f"uint64 `sequence` must round-trip losslessly via the JSON codec for n={n}"
+        )
+        assert gm.OpenMontageToolResult.from_json(tr.to_json()).seed == n, (
+            f"uint64 `seed` must round-trip losslessly via the JSON codec for n={n}"
+        )
+
+        # The flagged cross-language precision hazard, asserted concretely:
+        # routing the SAME value through a float (what a JS `Number` consumer
+        # does) loses precision once n > 2**53. Documents WHY the bare-number
+        # wire form is a cross-language finding; Python itself is unaffected.
+        through_float = int(float(n))
+        if n <= _TWO_53:
+            assert through_float == n, (
+                f"values up to 2**53 survive a float round-trip; n={n} should be exact"
+            )
+        elif n == _TWO_53 + 1:
+            assert through_float != n, (
+                "n=2**53+1 must be CLOBBERED by a float round-trip — the documented "
+                "JS `Number` precision hazard of emitting uint64 as a bare JSON number"
+            )
+
+
+def test_numeric_double_integer_and_fractional_roundtrip_without_coercion_error():
+    # A double field accepts BOTH an integer-valued JSON number (``3``) and a
+    # fractional one (``3.5``) without a type error; both round-trip exactly.
+    # Exercised on `budget_limit_usd` (PVR) and `cost_usd` (ToolResult). The
+    # codec coerces with ``float(...)``, so an int input becomes the float 3.0.
+    for inject, expected in ((3, 3.0), (3.5, 3.5)):
+        pvr = gm.OpenMontageProfessionalVideoRequest.from_dict(
+            {"version": "v1", "budget_limit_usd": inject}
+        )
+        assert pvr.budget_limit_usd == expected, (
+            f"double `budget_limit_usd` from JSON {inject!r} must equal {expected}, "
+            f"got {pvr.budget_limit_usd!r}"
+        )
+        assert isinstance(pvr.budget_limit_usd, float), (
+            "double `budget_limit_usd` must be a float after decode, "
+            f"got {type(pvr.budget_limit_usd).__name__}"
+        )
+        # Round-trip exactly via the dict codec.
+        rt = gm.OpenMontageProfessionalVideoRequest.from_dict(pvr.to_dict())
+        assert rt.budget_limit_usd == expected, (
+            f"double `budget_limit_usd` must round-trip exactly ({expected})"
+        )
+
+        tr = gm.OpenMontageToolResult.from_dict({"cost_usd": inject})
+        assert tr.cost_usd == expected, (
+            f"double `cost_usd` from JSON {inject!r} must equal {expected}, got {tr.cost_usd!r}"
+        )
+        assert isinstance(tr.cost_usd, float)
+
+
+# ---------------------------------------------------------------------------
+# T10-8 (R-PROTO-08): `*_json` escape-hatch fidelity (Python side).
+#
+# Fields such as ``payload_json``, ``metadata_json``, ``input_json``,
+# ``raw_info_json`` carry NESTED JSON as an opaque STRING — the codec stores the
+# text verbatim and does NOT parse it. A non-trivial nested JSON string (quotes,
+# backslashes, newlines, unicode, nested arrays/objects, ``null``) must
+# round-trip BYTE-STABLE on both the dict and JSON codecs, and the wire field
+# must be a string (not a re-parsed object).
+# ---------------------------------------------------------------------------
+
+
+def test_json_escape_hatch_nested_string_is_byte_stable():
+    embedded = json.dumps(
+        {
+            "a": [1, 2, {"b": 'q"uote', "c": "back\\slash", "n": "line1\nline2\ttab"}],
+            "u": "emoji-\U0001f600-☃",
+            "z": None,
+            "deep": {"x": {"y": [True, False, "ünïcödé"]}},
+        }
+    )
+    # Sanity: the fixture is non-trivial (carries escape-worthy characters).
+    assert '"' in embedded and "\\" in embedded and len(embedded) > 40, (
+        f"the embedded JSON fixture must be non-trivial; got {embedded!r}"
+    )
+
+    art = gm.OpenMontageArtifact(
+        kind=gm.OpenMontageArtifactKind.VIDEO,
+        payload_json=embedded,
+        metadata_json=embedded,
+    )
+
+    # The wire field must be carried as a STRING, not a re-parsed nested object.
+    payload_wire = art.to_dict()["payload_json"]
+    assert isinstance(payload_wire, str), (
+        f"`payload_json` must be carried as a string (opaque escape-hatch), "
+        f"got {type(payload_wire).__name__}"
+    )
+    assert payload_wire == embedded, "`payload_json` wire string must be the embedded JSON verbatim"
+
+    # Byte-stable round-trip via the dict codec...
+    via_dict = gm.OpenMontageArtifact.from_dict(art.to_dict())
+    assert via_dict.payload_json == embedded, (
+        "`payload_json` must round-trip byte-stable via the dict codec"
+    )
+    assert via_dict.metadata_json == embedded, (
+        "`metadata_json` must round-trip byte-stable via the dict codec"
+    )
+    # ...and via the JSON-text codec.
+    via_json = gm.OpenMontageArtifact.from_json(art.to_json())
+    assert via_json.payload_json == embedded, (
+        "`payload_json` must round-trip byte-stable via the JSON codec too"
+    )
+
+    # Control: the preserved string is itself valid, structured JSON — proving
+    # the field really carried a nested document the codec kept opaque.
+    reparsed = json.loads(via_dict.payload_json)
+    assert "a" in reparsed and "deep" in reparsed, (
+        "the preserved embedded JSON must still parse back to the original structure"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T10-9 (R-PROTO-09): map<string,string> round-trip (Python side).
+#
+# ``provider_preferences`` and ``provider_slots`` (proto ``map<string,string>``)
+# are ``Dict[str, str]``. Round-trip with 0, 1, and N entries; assert the map
+# survives intact and that the EMPTY map is emitted as ``{}`` (present, not
+# omitted) — matching the Rust codec (see the Rust companion test).
+# ---------------------------------------------------------------------------
+
+
+def test_map_string_string_roundtrips_for_zero_one_and_many_entries():
+    zero: dict = {}
+    one = {"only": "value"}
+    # N entries incl. JSON-hostile keys/values to stress escaping inside a map.
+    many = {
+        "alpha": "1",
+        "beta": "two",
+        'q"k': "back\\slash",
+        "uni-\U0001f600": "line1\nline2",
+    }
+
+    for entries in (zero, one, many):
+        pvr = gm.OpenMontageProfessionalVideoRequest(
+            provider_preferences=dict(entries),
+            provider_slots=dict(entries),
+        )
+        d = pvr.to_dict()
+
+        # The map is always PRESENT in the wire as a dict (even when empty
+        # -> {}); never None, never a non-dict.
+        assert "provider_preferences" in d, (
+            f"map `provider_preferences` must be present in the wire (len={len(entries)})"
+        )
+        assert isinstance(d["provider_preferences"], dict), (
+            f"map `provider_preferences` must serialize to a dict, "
+            f"got {type(d['provider_preferences']).__name__}"
+        )
+        assert d["provider_preferences"] == entries, (
+            f"serialized `provider_preferences` must equal the source map ({len(entries)} entries)"
+        )
+
+        # Round-trip via dict and JSON codecs; dict == is order-independent.
+        rt = gm.OpenMontageProfessionalVideoRequest.from_dict(d)
+        assert rt.provider_preferences == entries, (
+            f"map `provider_preferences` must round-trip intact ({len(entries)} entries)"
+        )
+        assert rt.provider_slots == entries, (
+            f"map `provider_slots` must round-trip intact ({len(entries)} entries)"
+        )
+        rt_json = gm.OpenMontageProfessionalVideoRequest.from_json(pvr.to_json())
+        assert rt_json.provider_preferences == entries, (
+            f"map `provider_preferences` must round-trip via JSON too ({len(entries)} entries)"
+        )
+
+    # Empty-map consistency: the DEFAULT message (empty maps) emits `{}` for
+    # both map fields — present, not omitted — matching the Rust codec.
+    default_d = gm.OpenMontageProfessionalVideoRequest().to_dict()
+    for key in ("provider_preferences", "provider_slots"):
+        assert key in default_d, f"default PVR must emit an (empty) `{key}` map"
+        assert default_d[key] == {}, (
+            f"an empty map `{key}` must serialize to {{}} (present, not omitted/None), "
+            f"got {default_d[key]!r}"
+        )
