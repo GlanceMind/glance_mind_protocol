@@ -171,7 +171,7 @@ class TaskConfig:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TaskConfig":
         filters = None
-        if data.get("filters"):
+        if data.get("filters") is not None:
             filters = TaskFilters.from_dict(data["filters"])
         return cls(
             keywords=data.get("keywords", []),
@@ -1063,11 +1063,11 @@ class AiPubInput:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AiPubInput":
         default_images = None
-        if data.get("default_images"):
+        if data.get("default_images") is not None:
             default_images = AiPubImageConfig.from_dict(data["default_images"])
         
         account_images = None
-        if data.get("account_images"):
+        if data.get("account_images") is not None:
             account_images = {
                 k: AiPubImageConfig.from_dict(v) 
                 for k, v in data["account_images"].items()
