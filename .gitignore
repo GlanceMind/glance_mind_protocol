@@ -1,6 +1,8 @@
 # Rust
 generated/rust/target/
 generated/rust/Cargo.lock
+generated/rust/mutants.out/
+generated/rust/mutants.out.old/
 
 # Python
 __pycache__/

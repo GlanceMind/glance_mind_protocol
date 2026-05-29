@@ -1,0 +1,267 @@
+# OpenMontage protocol test gate (T10-10).
+#
+# Wires the OpenMontage codec contract suites — which were previously NOT run in
+# CI — into the pipeline:
+#   * Rust  : generated/rust/tests/openmontage_contract.rs (16 tests incl. 5
+#             proptest round-trip properties + the cross-language golden oracle)
+#             plus the existing in-crate tests.
+#   * Python: generated/python/test_openmontage_protocol.py and
+#             generated/python/test_openmontage_golden_vectors.py.
+#   * Mutation: a cargo-mutants gate to ensure the above tests actually KILL
+#             codec mutations (a green-but-vacuous suite would otherwise pass).
+#
+# The pre-existing `harness.yml` (make harness-contract: crawler + wallet) is
+# left untouched; this is a separate, focused workflow per T10-10.
+#
+# NOTE (finding): generated/rust/src/lib.rs has pre-existing `cargo fmt` drift in
+# generated code unrelated to this work. This gate intentionally does NOT run
+# `cargo fmt --check` so it does not red on that drift. Fix the generator/format
+# separately; do not hand-edit generated code to satisfy a format gate.
+name: OpenMontage Protocol Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  schedule:
+    # Nightly full mutation pass (03:17 UTC). The per-PR job only mutates the
+    # diff (fast); the full pass is the slow, comprehensive gate.
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+
+env:
+  # The logfire pytest plugin is broken in this toolchain (ImportError on
+  # opentelemetry ReadableLogRecord). Disabling plugin autoload is REQUIRED for
+  # pytest to start — this mirrors the existing `make harness-contract` target.
+  PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Core gate: runs on every pull_request and push to main. Both languages'
+  # OpenMontage codec suites must pass.
+  # ---------------------------------------------------------------------------
+  protocol-tests:
+    name: OpenMontage codec tests (Rust + Python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            generated/rust/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('generated/rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # Rust gate: runs the openmontage_contract suite (enum round-trip, golden
+      # oracle, proptest round-trips, unknown-enum/field, numeric/json/map
+      # fidelity) plus the existing in-crate + vidu tests.
+      - name: Rust protocol tests (cargo test)
+        run: cd generated/rust && cargo test
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pytest
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      # Python gate: the OpenMontage protocol suite + the cross-language
+      # golden-vector suite. PYTEST_DISABLE_PLUGIN_AUTOLOAD is set globally
+      # (env: above) because the logfire plugin is broken in this env.
+      - name: Python protocol tests (pytest)
+        run: |
+          cd generated/python
+          python -m pytest test_openmontage_protocol.py test_openmontage_golden_vectors.py -q
+
+  # ---------------------------------------------------------------------------
+  # Mutation gate (per-PR, diff-scoped). cargo-mutants mutates ONLY the lines
+  # changed in the PR and requires the protocol test suite to catch (kill) each
+  # mutation. This is the fast feedback that new/changed codec code is actually
+  # covered by an assertion, not just compiled. Runs only on pull_request.
+  # Threshold: every mutant in the PR diff must be caught (no MISSED/UNVIABLE
+  # survivors) — `cargo mutants` exits non-zero if any mutant survives.
+  # ---------------------------------------------------------------------------
+  mutation-diff:
+    name: Mutation gate (PR diff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Need the base branch too so we can compute the PR diff.
+          fetch-depth: 0
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-mutants
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-mutants
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            generated/rust/target
+          key: ${{ runner.os }}-cargo-mutants-${{ hashFiles('generated/rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-mutants-
+            ${{ runner.os }}-cargo-
+
+      # Compute the diff of this PR against its base branch.
+      - name: Compute PR diff
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          git diff "origin/${{ github.base_ref }}...HEAD" > pr.diff
+          echo "----- PR diff summary -----"
+          git diff --stat "origin/${{ github.base_ref }}...HEAD"
+
+      # Mutate only the changed lines and run the full test suite against each
+      # mutant. Exits non-zero if any mutant in the diff survives (i.e. a code
+      # change is not covered by a test that fails when the code is broken).
+      # --in-place keeps it in the checkout (no extra copy); the runner is
+      # ephemeral so this is safe.
+      - name: cargo mutants (in-diff)
+        run: |
+          cd generated/rust
+          cargo mutants --in-diff ../../pr.diff --in-place -- --all-features
+
+      - name: Upload mutants report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutants-diff-report
+          path: generated/rust/mutants.out/
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # Mutation gate (full, nightly). Exhaustive cargo-mutants pass over the whole
+  # crate. Slow, so it runs on the nightly schedule and on-demand
+  # (workflow_dispatch), NOT on every PR.
+  #
+  # THRESHOLD (ROOT plan §10, module 10): the nightly full mutation pass must
+  # achieve >= 80% mutants caught on the codec modules. The gate step below
+  # parses the cargo-mutants outcome counts and fails the job if the caught
+  # ratio drops below 80%.
+  # ---------------------------------------------------------------------------
+  mutation-full:
+    name: Mutation gate (full, nightly)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install protoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-mutants
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-mutants
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            generated/rust/target
+          key: ${{ runner.os }}-cargo-mutants-${{ hashFiles('generated/rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-mutants-
+            ${{ runner.os }}-cargo-
+
+      # Run the full pass. `--in-place` mutates the checkout directly instead of
+      # copying the crate to a temp dir — REQUIRED here because build.rs reads
+      # the proto files via a relative `../../proto/` path that only resolves in
+      # the real tree (a copied-out tree fails to build). `|| true` lets the
+      # next step inspect the outcome and apply the documented 80% threshold
+      # (rather than cargo-mutants' default "any survivor fails"), since the
+      # whole-crate pass also covers non-codec helpers.
+      - name: cargo mutants (full)
+        run: |
+          cd generated/rust
+          cargo mutants --in-place -- --all-features || true
+
+      # Enforce the >= 80% caught threshold from ROOT plan §10. cargo-mutants
+      # writes outcomes.json with top-level aggregate counts; "caught" + "timeout"
+      # are killed, "missed" survives, "unviable" (didn't compile) is excluded.
+      # Fail if killed / (killed + missed) < 0.80.
+      - name: Enforce >= 80% mutants caught
+        run: |
+          cd generated/rust
+          python3 - <<'PY'
+          import json, sys, pathlib
+          out = pathlib.Path("mutants.out/outcomes.json")
+          if not out.exists():
+              print(f"::error::{out} not found; cargo-mutants did not produce a report")
+              sys.exit(1)
+          data = json.loads(out.read_text())
+          # Top-level aggregate counts are the source of truth (per-mutant
+          # `summary` strings like "MissedMutant"/"CaughtMutant" are a fallback).
+          caught = int(data.get("caught", 0))
+          timeout = int(data.get("timeout", 0))
+          missed = int(data.get("missed", 0))
+          killed = caught + timeout
+          total = killed + missed
+          if total == 0:
+              print("::error::no caught/missed mutants in report (build failure?)")
+              sys.exit(1)
+          ratio = killed / total
+          print(f"mutants caught: {killed}/{total} = {ratio:.1%} "
+                f"(caught={caught}, timeout={timeout}, missed={missed}; threshold 80%)")
+          if ratio < 0.80:
+              print(f"::error::mutation score {ratio:.1%} is below the 80% threshold")
+              sys.exit(1)
+          print("mutation score meets the 80% threshold")
+          PY
+
+      - name: Upload mutants report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutants-full-report
+          path: generated/rust/mutants.out/
+          if-no-files-found: ignore
