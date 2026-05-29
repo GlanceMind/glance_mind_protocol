@@ -1,0 +1,2836 @@
+{
+  "Enum_OpenMontageArtifactKind": {
+    "artifact_id": "art-001",
+    "artifact_name": "final.mp4",
+    "bytes": 1048576,
+    "duration_ms": 60000,
+    "height_px": 1080,
+    "kind": "manifest",
+    "metadata_json": "{\"codec\":\"h264\"}",
+    "mime_type": "video/mp4",
+    "path": "renders/final.mp4",
+    "payload_json": "{\"ok\":true}",
+    "role": "final",
+    "scene_id": "scene-1",
+    "schema_id": "render_report",
+    "source_tool": "video_compose",
+    "uri": "s3://bucket/final.mp4",
+    "validated": true,
+    "width_px": 1920
+  },
+  "Enum_OpenMontageErrorCode": {
+    "code": "live_provider_not_approved",
+    "detail_json": "{\"field\":\"title\"}",
+    "message": "validation failed",
+    "retryable": false
+  },
+  "Enum_OpenMontageEventType": {
+    "approval": {
+      "approval_id": "appr-001",
+      "decision_category": "scene_plan_approval",
+      "expires_at": "2026-01-02T00:00:00Z",
+      "options_json": "[\"approve\",\"revise\"]",
+      "prompt": "approve the scene plan?",
+      "stage": "scene_plan"
+    },
+    "artifact_payloads": [
+      {
+        "artifact_name": "script",
+        "metadata_json": "{\"stage\":\"script\"}",
+        "payload_json": "{\"sections\":[]}",
+        "role": "script",
+        "schema_fields": [
+          {
+            "default_json": "\"untitled\"",
+            "description": "The title field.",
+            "enum_values": [
+              "a",
+              "b"
+            ],
+            "json_type": "string",
+            "path": "$.title",
+            "required": true
+          }
+        ],
+        "schema_id": "script.schema.json",
+        "schema_version": "1.0.0",
+        "uri": "artifacts/script.json",
+        "validated": true,
+        "validation_error": "none"
+      }
+    ],
+    "artifacts": [
+      {
+        "artifact_id": "art-001",
+        "artifact_name": "final.mp4",
+        "bytes": 1048576,
+        "duration_ms": 60000,
+        "height_px": 1080,
+        "kind": "video",
+        "metadata_json": "{\"codec\":\"h264\"}",
+        "mime_type": "video/mp4",
+        "path": "renders/final.mp4",
+        "payload_json": "{\"ok\":true}",
+        "role": "final",
+        "scene_id": "scene-1",
+        "schema_id": "render_report",
+        "source_tool": "video_compose",
+        "uri": "s3://bucket/final.mp4",
+        "validated": true,
+        "width_px": 1920
+      }
+    ],
+    "checkpoint": {
+      "artifact_payloads": [
+        {
+          "artifact_name": "script",
+          "metadata_json": "{\"stage\":\"script\"}",
+          "payload_json": "{\"sections\":[]}",
+          "role": "script",
+          "schema_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "schema_id": "script.schema.json",
+          "schema_version": "1.0.0",
+          "uri": "artifacts/script.json",
+          "validated": true,
+          "validation_error": "none"
+        }
+      ],
+      "artifact_refs": [
+        "script"
+      ],
+      "checkpoint": {
+        "artifacts": [
+          {
+            "artifact_name": "script",
+            "metadata_json": "{\"stage\":\"script\"}",
+            "payload_json": "{\"sections\":[]}",
+            "role": "script",
+            "schema_fields": [
+              {
+                "default_json": "\"untitled\"",
+                "description": "The title field.",
+                "enum_values": [
+                  "a",
+                  "b"
+                ],
+                "json_type": "string",
+                "path": "$.title",
+                "required": true
+              }
+            ],
+            "schema_id": "script.schema.json",
+            "schema_version": "1.0.0",
+            "uri": "artifacts/script.json",
+            "validated": true,
+            "validation_error": "none"
+          }
+        ],
+        "artifacts_json": "[{\"artifact_name\":\"script\"}]",
+        "checkpoint_policy": "creative_stages",
+        "cost_snapshot_json": "{\"usd\":1.0}",
+        "error": "none",
+        "human_approval_required": true,
+        "human_approved": true,
+        "metadata_json": "{\"k\":\"v\"}",
+        "path": "pipelines/proj-001/checkpoint_script.json",
+        "pipeline_type": "animated-explainer",
+        "project_id": "proj-001",
+        "review_json": "{\"findings\":[]}",
+        "stage": "script",
+        "status": "completed",
+        "style_playbook": "flat-motion-graphics",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "version": "1.0.0"
+      },
+      "checkpoint_json": "{\"stage\":\"script\"}",
+      "cost_snapshot_json": "{\"usd\":1.0}",
+      "created_at": "2026-01-01T00:00:00Z",
+      "review_json": "{\"findings\":[]}",
+      "sequence": 3,
+      "stage": "script",
+      "status": "completed",
+      "summary": "script complete"
+    },
+    "checkpoint_full": {
+      "artifacts": [
+        {
+          "artifact_name": "script",
+          "metadata_json": "{\"stage\":\"script\"}",
+          "payload_json": "{\"sections\":[]}",
+          "role": "script",
+          "schema_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "schema_id": "script.schema.json",
+          "schema_version": "1.0.0",
+          "uri": "artifacts/script.json",
+          "validated": true,
+          "validation_error": "none"
+        }
+      ],
+      "artifacts_json": "[{\"artifact_name\":\"script\"}]",
+      "checkpoint_policy": "creative_stages",
+      "cost_snapshot_json": "{\"usd\":1.0}",
+      "error": "none",
+      "human_approval_required": true,
+      "human_approved": true,
+      "metadata_json": "{\"k\":\"v\"}",
+      "path": "pipelines/proj-001/checkpoint_script.json",
+      "pipeline_type": "animated-explainer",
+      "project_id": "proj-001",
+      "review_json": "{\"findings\":[]}",
+      "stage": "script",
+      "status": "completed",
+      "style_playbook": "flat-motion-graphics",
+      "timestamp": "2026-01-01T00:00:00Z",
+      "version": "1.0.0"
+    },
+    "emitted_at": "2026-01-01T00:10:00Z",
+    "error": {
+      "code": "validation_error",
+      "detail_json": "{\"field\":\"title\"}",
+      "message": "validation failed",
+      "retryable": false
+    },
+    "event_id": "evt-001",
+    "event_json": "{\"raw\":true}",
+    "event_type": "provider_blocked",
+    "job": {
+      "correlation_id": "corr-001",
+      "idempotency_key": "idem-001",
+      "job_id": "job-001",
+      "project_id": "proj-001",
+      "request_id": "req-001"
+    },
+    "preflight": {
+      "capabilities": [
+        {
+          "available_providers": [
+            "elevenlabs"
+          ],
+          "capability": "tts",
+          "configured": 1,
+          "total": 3,
+          "unavailable_providers": [
+            "openai",
+            "piper"
+          ]
+        }
+      ],
+      "captured_at": "2026-01-01T00:00:00Z",
+      "composition_runtimes": [
+        {
+          "available": true,
+          "name": "remotion",
+          "note": "node present",
+          "warnings": [
+            "slow first render"
+          ]
+        }
+      ],
+      "pipelines": [
+        {
+          "category": "explainer",
+          "compatible_playbooks": [
+            "flat-motion-graphics"
+          ],
+          "compatible_playbooks_json": "[\"flat-motion-graphics\"]",
+          "default_checkpoint_policy": "creative_stages",
+          "description": "Topic to fully generated explainer.",
+          "extensions": {
+            "custom_playbooks": true,
+            "custom_scripts": true,
+            "custom_skills": false,
+            "custom_tools": false
+          },
+          "metadata_json": "{\"v\":1}",
+          "name": "animated-explainer",
+          "orchestration": {
+            "budget_default_usd": 10.0,
+            "max_revisions_per_stage": 2,
+            "max_send_backs": 1,
+            "max_wall_time_minutes": 30,
+            "mode": "autonomous",
+            "skill": "skills/meta/orchestrator.md"
+          },
+          "raw_manifest_json": "{\"name\":\"animated-explainer\"}",
+          "reference_input": {
+            "analysis_depth": "deep",
+            "analysis_tools": [
+              "video_analyzer",
+              "transcriber"
+            ],
+            "supported": true
+          },
+          "required_skills": [
+            "reviewer"
+          ],
+          "stability": "production",
+          "stages": [
+            {
+              "agent": "composer",
+              "checkpoint_required": true,
+              "fallback_tools": [
+                "video_stitch"
+              ],
+              "human_approval_default": false,
+              "metadata_json": "{\"order\":6}",
+              "name": "compose",
+              "optional_artifacts_in": [
+                "music"
+              ],
+              "optional_tools": [
+                "audio_mixer"
+              ],
+              "preferred_tools": [
+                "video_compose"
+              ],
+              "produces": [
+                "render_report"
+              ],
+              "required_artifacts_in": [
+                "edit_decisions"
+              ],
+              "required_tools": [
+                "video_compose"
+              ],
+              "review_focus": [
+                "encoding"
+              ],
+              "skill": "skills/pipelines/x/compose-director.md",
+              "sub_stages": [
+                {
+                  "condition": "always",
+                  "description": "A sub stage.",
+                  "human_approval_default": true,
+                  "name": "sub-1",
+                  "review_focus": [
+                    "timing"
+                  ],
+                  "tools_available": [
+                    "video_compose"
+                  ]
+                }
+              ],
+              "success_criteria": [
+                "final.mp4 exists"
+              ],
+              "tools_available": [
+                "video_compose",
+                "audio_mixer"
+              ]
+            }
+          ],
+          "version": "1.0.0"
+        }
+      ],
+      "provider_menu_json": "{\"capabilities\":[]}",
+      "provider_menu_summary_json": "{\"composition_runtimes\":{}}",
+      "runtime_warnings": [
+        "hyperframes: npm package not resolvable"
+      ],
+      "setup_offers": [
+        {
+          "capability": "video_generation",
+          "install_instructions": "set FAL_KEY",
+          "provider": "kling",
+          "tool": "kling_video"
+        }
+      ],
+      "support_envelope_json": "{\"tools\":[]}",
+      "tools": [
+        {
+          "agent_skills": [
+            "ffmpeg"
+          ],
+          "artifact_schema_json": "{\"type\":\"array\"}",
+          "best_for": [
+            "cuts",
+            "concat"
+          ],
+          "capabilities": [
+            "concat",
+            "trim"
+          ],
+          "capability": "video_post",
+          "dependencies": [
+            "ffmpeg"
+          ],
+          "determinism": "deterministic",
+          "execution_mode": "local",
+          "fallback": "video_stitch",
+          "fallback_tools": [
+            "video_stitch",
+            "video_trimmer"
+          ],
+          "historical_success_rate": 0.99,
+          "hyperframes_note": "needs node22",
+          "input_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "input_schema_json": "{\"type\":\"object\"}",
+          "install_instructions": "brew install ffmpeg",
+          "latency_p50_seconds": 12.5,
+          "module_path": "tools.video.video_compose",
+          "name": "video_compose",
+          "not_good_for": [
+            "3d"
+          ],
+          "output_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "output_schema_json": "{\"type\":\"object\"}",
+          "progress_schema_json": "{\"type\":\"number\"}",
+          "provider": "ffmpeg",
+          "provider_matrix_json": "{\"ffmpeg\":\"ok\"}",
+          "quality_score": 0.95,
+          "raw_info_json": "{\"k\":\"v\"}",
+          "related_skills": [
+            "remotion"
+          ],
+          "remotion_note": "needs node",
+          "render_engines_json": "[\"ffmpeg\",\"remotion\"]",
+          "render_runtimes_json": "[\"ffmpeg\"]",
+          "resource_profile": {
+            "cpu_cores": 4,
+            "disk_mb": 20480,
+            "network_required": true,
+            "ram_mb": 8192,
+            "vram_mb": 4096
+          },
+          "resume_support": "checkpoint",
+          "retry_policy": {
+            "backoff_seconds": 2.5,
+            "max_retries": 3,
+            "retryable_errors": [
+              "provider_unavailable",
+              "render_failed"
+            ]
+          },
+          "runtime": "LOCAL",
+          "runtime_governance": "locked_at_proposal",
+          "side_effects": [
+            "writes_disk"
+          ],
+          "stability": "production",
+          "status": "available",
+          "supports_json": "{\"subtitle_burn\":true}",
+          "tier": "core",
+          "usage_location": "tools/video/video_compose.py",
+          "user_visible_verification": [
+            "play the output"
+          ],
+          "version": "1.2.3"
+        }
+      ]
+    },
+    "progress_pct": 42,
+    "sequence": 5,
+    "stage": "assets",
+    "status": "running",
+    "tool_invocation": {
+      "capability": "video_post",
+      "contract_version": "1.2.3",
+      "dry_run": true,
+      "expected_artifact_roles": [
+        "final"
+      ],
+      "idempotency_key": "inv-idem-001",
+      "input_json": "{\"cuts\":[]}",
+      "invocation_id": "inv-001",
+      "max_cost_usd": 1.5,
+      "metadata_json": "{\"attempt\":1}",
+      "operation": "render",
+      "provider": "ffmpeg",
+      "role": "primary",
+      "stage": "compose",
+      "tool_name": "video_compose"
+    },
+    "tool_result": {
+      "artifact_uris": [
+        "s3://bucket/final.mp4"
+      ],
+      "artifacts": [
+        {
+          "artifact_id": "art-001",
+          "artifact_name": "final.mp4",
+          "bytes": 1048576,
+          "duration_ms": 60000,
+          "height_px": 1080,
+          "kind": "video",
+          "metadata_json": "{\"codec\":\"h264\"}",
+          "mime_type": "video/mp4",
+          "path": "renders/final.mp4",
+          "payload_json": "{\"ok\":true}",
+          "role": "final",
+          "scene_id": "scene-1",
+          "schema_id": "render_report",
+          "source_tool": "video_compose",
+          "uri": "s3://bucket/final.mp4",
+          "validated": true,
+          "width_px": 1920
+        }
+      ],
+      "cost_usd": 1.25,
+      "data_json": "{\"output\":\"final.mp4\"}",
+      "duration_seconds": 12.5,
+      "error": "none",
+      "invocation_id": "inv-001",
+      "metadata_json": "{\"attempt\":1}",
+      "model": "ffmpeg-6",
+      "raw_artifacts_json": "[{\"uri\":\"s3://bucket/final.mp4\"}]",
+      "seed": 42,
+      "success": true,
+      "tool_name": "video_compose"
+    },
+    "version": "v1"
+  },
+  "Enum_OpenMontageInputAssetKind": {
+    "duration_ms": 5000,
+    "height_px": 1080,
+    "kind": "lut",
+    "metadata_json": "{\"fps\":30}",
+    "mime_type": "video/mp4",
+    "role": "reference",
+    "uri": "s3://bucket/reference.mp4",
+    "width_px": 1920
+  },
+  "Enum_OpenMontageJobStatus": {
+    "artifact_payloads": [
+      {
+        "artifact_name": "script",
+        "metadata_json": "{\"stage\":\"script\"}",
+        "payload_json": "{\"sections\":[]}",
+        "role": "script",
+        "schema_fields": [
+          {
+            "default_json": "\"untitled\"",
+            "description": "The title field.",
+            "enum_values": [
+              "a",
+              "b"
+            ],
+            "json_type": "string",
+            "path": "$.title",
+            "required": true
+          }
+        ],
+        "schema_id": "script.schema.json",
+        "schema_version": "1.0.0",
+        "uri": "artifacts/script.json",
+        "validated": true,
+        "validation_error": "none"
+      }
+    ],
+    "artifact_refs": [
+      "script"
+    ],
+    "checkpoint": {
+      "artifacts": [
+        {
+          "artifact_name": "script",
+          "metadata_json": "{\"stage\":\"script\"}",
+          "payload_json": "{\"sections\":[]}",
+          "role": "script",
+          "schema_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "schema_id": "script.schema.json",
+          "schema_version": "1.0.0",
+          "uri": "artifacts/script.json",
+          "validated": true,
+          "validation_error": "none"
+        }
+      ],
+      "artifacts_json": "[{\"artifact_name\":\"script\"}]",
+      "checkpoint_policy": "creative_stages",
+      "cost_snapshot_json": "{\"usd\":1.0}",
+      "error": "none",
+      "human_approval_required": true,
+      "human_approved": true,
+      "metadata_json": "{\"k\":\"v\"}",
+      "path": "pipelines/proj-001/checkpoint_script.json",
+      "pipeline_type": "animated-explainer",
+      "project_id": "proj-001",
+      "review_json": "{\"findings\":[]}",
+      "stage": "script",
+      "status": "completed",
+      "style_playbook": "flat-motion-graphics",
+      "timestamp": "2026-01-01T00:00:00Z",
+      "version": "1.0.0"
+    },
+    "checkpoint_json": "{\"stage\":\"script\"}",
+    "cost_snapshot_json": "{\"usd\":1.0}",
+    "created_at": "2026-01-01T00:00:00Z",
+    "review_json": "{\"findings\":[]}",
+    "sequence": 3,
+    "stage": "script",
+    "status": "awaiting_human",
+    "summary": "script complete"
+  },
+  "Enum_OpenMontageProtocolVersion": {
+    "accepted_at": "2026-01-01T00:00:00Z",
+    "error": {
+      "code": "validation_error",
+      "detail_json": "{\"field\":\"title\"}",
+      "message": "validation failed",
+      "retryable": false
+    },
+    "job": {
+      "correlation_id": "corr-001",
+      "idempotency_key": "idem-001",
+      "job_id": "job-001",
+      "project_id": "proj-001",
+      "request_id": "req-001"
+    },
+    "next_event_sequence": 1,
+    "status": "queued",
+    "status_url": "https://api.example/jobs/job-001",
+    "version": "v1"
+  },
+  "OpenMontageApprovalDecision": {
+    "actor_id": "user-001",
+    "approval_id": "appr-001",
+    "comment": "looks good",
+    "decided_at": "2026-01-01T00:05:00Z",
+    "decision": "approve",
+    "job_id": "job-001",
+    "metadata_json": "{\"channel\":\"ui\"}"
+  },
+  "OpenMontageApprovalRequest": {
+    "approval_id": "appr-001",
+    "decision_category": "scene_plan_approval",
+    "expires_at": "2026-01-02T00:00:00Z",
+    "options_json": "[\"approve\",\"revise\"]",
+    "prompt": "approve the scene plan?",
+    "stage": "scene_plan"
+  },
+  "OpenMontageArtifact": {
+    "artifact_id": "art-001",
+    "artifact_name": "final.mp4",
+    "bytes": 1048576,
+    "duration_ms": 60000,
+    "height_px": 1080,
+    "kind": "video",
+    "metadata_json": "{\"codec\":\"h264\"}",
+    "mime_type": "video/mp4",
+    "path": "renders/final.mp4",
+    "payload_json": "{\"ok\":true}",
+    "role": "final",
+    "scene_id": "scene-1",
+    "schema_id": "render_report",
+    "source_tool": "video_compose",
+    "uri": "s3://bucket/final.mp4",
+    "validated": true,
+    "width_px": 1920
+  },
+  "OpenMontageArtifactPayload": {
+    "artifact_name": "script",
+    "metadata_json": "{\"stage\":\"script\"}",
+    "payload_json": "{\"sections\":[]}",
+    "role": "script",
+    "schema_fields": [
+      {
+        "default_json": "\"untitled\"",
+        "description": "The title field.",
+        "enum_values": [
+          "a",
+          "b"
+        ],
+        "json_type": "string",
+        "path": "$.title",
+        "required": true
+      }
+    ],
+    "schema_id": "script.schema.json",
+    "schema_version": "1.0.0",
+    "uri": "artifacts/script.json",
+    "validated": true,
+    "validation_error": "none"
+  },
+  "OpenMontageCallbackAck": {
+    "event_id": "evt-001",
+    "message": "ok",
+    "next_expected_sequence": 6,
+    "received": true
+  },
+  "OpenMontageCallbackConfig": {
+    "callback_secret_ref": "secret://cb",
+    "callback_url": "https://hooks.example/cb",
+    "event_types": [
+      "job_completed",
+      "job_failed"
+    ]
+  },
+  "OpenMontageCapabilitySummary": {
+    "available_providers": [
+      "elevenlabs"
+    ],
+    "capability": "tts",
+    "configured": 1,
+    "total": 3,
+    "unavailable_providers": [
+      "openai",
+      "piper"
+    ]
+  },
+  "OpenMontageCheckpoint": {
+    "artifacts": [
+      {
+        "artifact_name": "script",
+        "metadata_json": "{\"stage\":\"script\"}",
+        "payload_json": "{\"sections\":[]}",
+        "role": "script",
+        "schema_fields": [
+          {
+            "default_json": "\"untitled\"",
+            "description": "The title field.",
+            "enum_values": [
+              "a",
+              "b"
+            ],
+            "json_type": "string",
+            "path": "$.title",
+            "required": true
+          }
+        ],
+        "schema_id": "script.schema.json",
+        "schema_version": "1.0.0",
+        "uri": "artifacts/script.json",
+        "validated": true,
+        "validation_error": "none"
+      }
+    ],
+    "artifacts_json": "[{\"artifact_name\":\"script\"}]",
+    "checkpoint_policy": "creative_stages",
+    "cost_snapshot_json": "{\"usd\":1.0}",
+    "error": "none",
+    "human_approval_required": true,
+    "human_approved": true,
+    "metadata_json": "{\"k\":\"v\"}",
+    "path": "pipelines/proj-001/checkpoint_script.json",
+    "pipeline_type": "animated-explainer",
+    "project_id": "proj-001",
+    "review_json": "{\"findings\":[]}",
+    "stage": "script",
+    "status": "completed",
+    "style_playbook": "flat-motion-graphics",
+    "timestamp": "2026-01-01T00:00:00Z",
+    "version": "1.0.0"
+  },
+  "OpenMontageDecision": {
+    "category": "render_runtime_selection",
+    "confidence": "high",
+    "created_at": "2026-01-01T00:00:00Z",
+    "options_json": "[\"remotion\",\"ffmpeg\"]",
+    "selected_option": "remotion",
+    "sequence": 2,
+    "summary": "chose remotion"
+  },
+  "OpenMontageError": {
+    "code": "validation_error",
+    "detail_json": "{\"field\":\"title\"}",
+    "message": "validation failed",
+    "retryable": false
+  },
+  "OpenMontageExtensionPermissions": {
+    "custom_playbooks": true,
+    "custom_scripts": true,
+    "custom_skills": false,
+    "custom_tools": false
+  },
+  "OpenMontageInputAsset": {
+    "duration_ms": 5000,
+    "height_px": 1080,
+    "kind": "reference_video",
+    "metadata_json": "{\"fps\":30}",
+    "mime_type": "video/mp4",
+    "role": "reference",
+    "uri": "s3://bucket/reference.mp4",
+    "width_px": 1920
+  },
+  "OpenMontageJobEvent": {
+    "approval": {
+      "approval_id": "appr-001",
+      "decision_category": "scene_plan_approval",
+      "expires_at": "2026-01-02T00:00:00Z",
+      "options_json": "[\"approve\",\"revise\"]",
+      "prompt": "approve the scene plan?",
+      "stage": "scene_plan"
+    },
+    "artifact_payloads": [
+      {
+        "artifact_name": "script",
+        "metadata_json": "{\"stage\":\"script\"}",
+        "payload_json": "{\"sections\":[]}",
+        "role": "script",
+        "schema_fields": [
+          {
+            "default_json": "\"untitled\"",
+            "description": "The title field.",
+            "enum_values": [
+              "a",
+              "b"
+            ],
+            "json_type": "string",
+            "path": "$.title",
+            "required": true
+          }
+        ],
+        "schema_id": "script.schema.json",
+        "schema_version": "1.0.0",
+        "uri": "artifacts/script.json",
+        "validated": true,
+        "validation_error": "none"
+      }
+    ],
+    "artifacts": [
+      {
+        "artifact_id": "art-001",
+        "artifact_name": "final.mp4",
+        "bytes": 1048576,
+        "duration_ms": 60000,
+        "height_px": 1080,
+        "kind": "video",
+        "metadata_json": "{\"codec\":\"h264\"}",
+        "mime_type": "video/mp4",
+        "path": "renders/final.mp4",
+        "payload_json": "{\"ok\":true}",
+        "role": "final",
+        "scene_id": "scene-1",
+        "schema_id": "render_report",
+        "source_tool": "video_compose",
+        "uri": "s3://bucket/final.mp4",
+        "validated": true,
+        "width_px": 1920
+      }
+    ],
+    "checkpoint": {
+      "artifact_payloads": [
+        {
+          "artifact_name": "script",
+          "metadata_json": "{\"stage\":\"script\"}",
+          "payload_json": "{\"sections\":[]}",
+          "role": "script",
+          "schema_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "schema_id": "script.schema.json",
+          "schema_version": "1.0.0",
+          "uri": "artifacts/script.json",
+          "validated": true,
+          "validation_error": "none"
+        }
+      ],
+      "artifact_refs": [
+        "script"
+      ],
+      "checkpoint": {
+        "artifacts": [
+          {
+            "artifact_name": "script",
+            "metadata_json": "{\"stage\":\"script\"}",
+            "payload_json": "{\"sections\":[]}",
+            "role": "script",
+            "schema_fields": [
+              {
+                "default_json": "\"untitled\"",
+                "description": "The title field.",
+                "enum_values": [
+                  "a",
+                  "b"
+                ],
+                "json_type": "string",
+                "path": "$.title",
+                "required": true
+              }
+            ],
+            "schema_id": "script.schema.json",
+            "schema_version": "1.0.0",
+            "uri": "artifacts/script.json",
+            "validated": true,
+            "validation_error": "none"
+          }
+        ],
+        "artifacts_json": "[{\"artifact_name\":\"script\"}]",
+        "checkpoint_policy": "creative_stages",
+        "cost_snapshot_json": "{\"usd\":1.0}",
+        "error": "none",
+        "human_approval_required": true,
+        "human_approved": true,
+        "metadata_json": "{\"k\":\"v\"}",
+        "path": "pipelines/proj-001/checkpoint_script.json",
+        "pipeline_type": "animated-explainer",
+        "project_id": "proj-001",
+        "review_json": "{\"findings\":[]}",
+        "stage": "script",
+        "status": "completed",
+        "style_playbook": "flat-motion-graphics",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "version": "1.0.0"
+      },
+      "checkpoint_json": "{\"stage\":\"script\"}",
+      "cost_snapshot_json": "{\"usd\":1.0}",
+      "created_at": "2026-01-01T00:00:00Z",
+      "review_json": "{\"findings\":[]}",
+      "sequence": 3,
+      "stage": "script",
+      "status": "completed",
+      "summary": "script complete"
+    },
+    "checkpoint_full": {
+      "artifacts": [
+        {
+          "artifact_name": "script",
+          "metadata_json": "{\"stage\":\"script\"}",
+          "payload_json": "{\"sections\":[]}",
+          "role": "script",
+          "schema_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "schema_id": "script.schema.json",
+          "schema_version": "1.0.0",
+          "uri": "artifacts/script.json",
+          "validated": true,
+          "validation_error": "none"
+        }
+      ],
+      "artifacts_json": "[{\"artifact_name\":\"script\"}]",
+      "checkpoint_policy": "creative_stages",
+      "cost_snapshot_json": "{\"usd\":1.0}",
+      "error": "none",
+      "human_approval_required": true,
+      "human_approved": true,
+      "metadata_json": "{\"k\":\"v\"}",
+      "path": "pipelines/proj-001/checkpoint_script.json",
+      "pipeline_type": "animated-explainer",
+      "project_id": "proj-001",
+      "review_json": "{\"findings\":[]}",
+      "stage": "script",
+      "status": "completed",
+      "style_playbook": "flat-motion-graphics",
+      "timestamp": "2026-01-01T00:00:00Z",
+      "version": "1.0.0"
+    },
+    "emitted_at": "2026-01-01T00:10:00Z",
+    "error": {
+      "code": "validation_error",
+      "detail_json": "{\"field\":\"title\"}",
+      "message": "validation failed",
+      "retryable": false
+    },
+    "event_id": "evt-001",
+    "event_json": "{\"raw\":true}",
+    "event_type": "artifact_ready",
+    "job": {
+      "correlation_id": "corr-001",
+      "idempotency_key": "idem-001",
+      "job_id": "job-001",
+      "project_id": "proj-001",
+      "request_id": "req-001"
+    },
+    "preflight": {
+      "capabilities": [
+        {
+          "available_providers": [
+            "elevenlabs"
+          ],
+          "capability": "tts",
+          "configured": 1,
+          "total": 3,
+          "unavailable_providers": [
+            "openai",
+            "piper"
+          ]
+        }
+      ],
+      "captured_at": "2026-01-01T00:00:00Z",
+      "composition_runtimes": [
+        {
+          "available": true,
+          "name": "remotion",
+          "note": "node present",
+          "warnings": [
+            "slow first render"
+          ]
+        }
+      ],
+      "pipelines": [
+        {
+          "category": "explainer",
+          "compatible_playbooks": [
+            "flat-motion-graphics"
+          ],
+          "compatible_playbooks_json": "[\"flat-motion-graphics\"]",
+          "default_checkpoint_policy": "creative_stages",
+          "description": "Topic to fully generated explainer.",
+          "extensions": {
+            "custom_playbooks": true,
+            "custom_scripts": true,
+            "custom_skills": false,
+            "custom_tools": false
+          },
+          "metadata_json": "{\"v\":1}",
+          "name": "animated-explainer",
+          "orchestration": {
+            "budget_default_usd": 10.0,
+            "max_revisions_per_stage": 2,
+            "max_send_backs": 1,
+            "max_wall_time_minutes": 30,
+            "mode": "autonomous",
+            "skill": "skills/meta/orchestrator.md"
+          },
+          "raw_manifest_json": "{\"name\":\"animated-explainer\"}",
+          "reference_input": {
+            "analysis_depth": "deep",
+            "analysis_tools": [
+              "video_analyzer",
+              "transcriber"
+            ],
+            "supported": true
+          },
+          "required_skills": [
+            "reviewer"
+          ],
+          "stability": "production",
+          "stages": [
+            {
+              "agent": "composer",
+              "checkpoint_required": true,
+              "fallback_tools": [
+                "video_stitch"
+              ],
+              "human_approval_default": false,
+              "metadata_json": "{\"order\":6}",
+              "name": "compose",
+              "optional_artifacts_in": [
+                "music"
+              ],
+              "optional_tools": [
+                "audio_mixer"
+              ],
+              "preferred_tools": [
+                "video_compose"
+              ],
+              "produces": [
+                "render_report"
+              ],
+              "required_artifacts_in": [
+                "edit_decisions"
+              ],
+              "required_tools": [
+                "video_compose"
+              ],
+              "review_focus": [
+                "encoding"
+              ],
+              "skill": "skills/pipelines/x/compose-director.md",
+              "sub_stages": [
+                {
+                  "condition": "always",
+                  "description": "A sub stage.",
+                  "human_approval_default": true,
+                  "name": "sub-1",
+                  "review_focus": [
+                    "timing"
+                  ],
+                  "tools_available": [
+                    "video_compose"
+                  ]
+                }
+              ],
+              "success_criteria": [
+                "final.mp4 exists"
+              ],
+              "tools_available": [
+                "video_compose",
+                "audio_mixer"
+              ]
+            }
+          ],
+          "version": "1.0.0"
+        }
+      ],
+      "provider_menu_json": "{\"capabilities\":[]}",
+      "provider_menu_summary_json": "{\"composition_runtimes\":{}}",
+      "runtime_warnings": [
+        "hyperframes: npm package not resolvable"
+      ],
+      "setup_offers": [
+        {
+          "capability": "video_generation",
+          "install_instructions": "set FAL_KEY",
+          "provider": "kling",
+          "tool": "kling_video"
+        }
+      ],
+      "support_envelope_json": "{\"tools\":[]}",
+      "tools": [
+        {
+          "agent_skills": [
+            "ffmpeg"
+          ],
+          "artifact_schema_json": "{\"type\":\"array\"}",
+          "best_for": [
+            "cuts",
+            "concat"
+          ],
+          "capabilities": [
+            "concat",
+            "trim"
+          ],
+          "capability": "video_post",
+          "dependencies": [
+            "ffmpeg"
+          ],
+          "determinism": "deterministic",
+          "execution_mode": "local",
+          "fallback": "video_stitch",
+          "fallback_tools": [
+            "video_stitch",
+            "video_trimmer"
+          ],
+          "historical_success_rate": 0.99,
+          "hyperframes_note": "needs node22",
+          "input_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "input_schema_json": "{\"type\":\"object\"}",
+          "install_instructions": "brew install ffmpeg",
+          "latency_p50_seconds": 12.5,
+          "module_path": "tools.video.video_compose",
+          "name": "video_compose",
+          "not_good_for": [
+            "3d"
+          ],
+          "output_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "output_schema_json": "{\"type\":\"object\"}",
+          "progress_schema_json": "{\"type\":\"number\"}",
+          "provider": "ffmpeg",
+          "provider_matrix_json": "{\"ffmpeg\":\"ok\"}",
+          "quality_score": 0.95,
+          "raw_info_json": "{\"k\":\"v\"}",
+          "related_skills": [
+            "remotion"
+          ],
+          "remotion_note": "needs node",
+          "render_engines_json": "[\"ffmpeg\",\"remotion\"]",
+          "render_runtimes_json": "[\"ffmpeg\"]",
+          "resource_profile": {
+            "cpu_cores": 4,
+            "disk_mb": 20480,
+            "network_required": true,
+            "ram_mb": 8192,
+            "vram_mb": 4096
+          },
+          "resume_support": "checkpoint",
+          "retry_policy": {
+            "backoff_seconds": 2.5,
+            "max_retries": 3,
+            "retryable_errors": [
+              "provider_unavailable",
+              "render_failed"
+            ]
+          },
+          "runtime": "LOCAL",
+          "runtime_governance": "locked_at_proposal",
+          "side_effects": [
+            "writes_disk"
+          ],
+          "stability": "production",
+          "status": "available",
+          "supports_json": "{\"subtitle_burn\":true}",
+          "tier": "core",
+          "usage_location": "tools/video/video_compose.py",
+          "user_visible_verification": [
+            "play the output"
+          ],
+          "version": "1.2.3"
+        }
+      ]
+    },
+    "progress_pct": 42,
+    "sequence": 5,
+    "stage": "assets",
+    "status": "running",
+    "tool_invocation": {
+      "capability": "video_post",
+      "contract_version": "1.2.3",
+      "dry_run": true,
+      "expected_artifact_roles": [
+        "final"
+      ],
+      "idempotency_key": "inv-idem-001",
+      "input_json": "{\"cuts\":[]}",
+      "invocation_id": "inv-001",
+      "max_cost_usd": 1.5,
+      "metadata_json": "{\"attempt\":1}",
+      "operation": "render",
+      "provider": "ffmpeg",
+      "role": "primary",
+      "stage": "compose",
+      "tool_name": "video_compose"
+    },
+    "tool_result": {
+      "artifact_uris": [
+        "s3://bucket/final.mp4"
+      ],
+      "artifacts": [
+        {
+          "artifact_id": "art-001",
+          "artifact_name": "final.mp4",
+          "bytes": 1048576,
+          "duration_ms": 60000,
+          "height_px": 1080,
+          "kind": "video",
+          "metadata_json": "{\"codec\":\"h264\"}",
+          "mime_type": "video/mp4",
+          "path": "renders/final.mp4",
+          "payload_json": "{\"ok\":true}",
+          "role": "final",
+          "scene_id": "scene-1",
+          "schema_id": "render_report",
+          "source_tool": "video_compose",
+          "uri": "s3://bucket/final.mp4",
+          "validated": true,
+          "width_px": 1920
+        }
+      ],
+      "cost_usd": 1.25,
+      "data_json": "{\"output\":\"final.mp4\"}",
+      "duration_seconds": 12.5,
+      "error": "none",
+      "invocation_id": "inv-001",
+      "metadata_json": "{\"attempt\":1}",
+      "model": "ffmpeg-6",
+      "raw_artifacts_json": "[{\"uri\":\"s3://bucket/final.mp4\"}]",
+      "seed": 42,
+      "success": true,
+      "tool_name": "video_compose"
+    },
+    "version": "v1"
+  },
+  "OpenMontageJobRef": {
+    "correlation_id": "corr-001",
+    "idempotency_key": "idem-001",
+    "job_id": "job-001",
+    "project_id": "proj-001",
+    "request_id": "req-001"
+  },
+  "OpenMontageJobSnapshot": {
+    "approvals": [
+      {
+        "approval_id": "appr-001",
+        "decision_category": "scene_plan_approval",
+        "expires_at": "2026-01-02T00:00:00Z",
+        "options_json": "[\"approve\",\"revise\"]",
+        "prompt": "approve the scene plan?",
+        "stage": "scene_plan"
+      }
+    ],
+    "artifact_payloads": [
+      {
+        "artifact_name": "script",
+        "metadata_json": "{\"stage\":\"script\"}",
+        "payload_json": "{\"sections\":[]}",
+        "role": "script",
+        "schema_fields": [
+          {
+            "default_json": "\"untitled\"",
+            "description": "The title field.",
+            "enum_values": [
+              "a",
+              "b"
+            ],
+            "json_type": "string",
+            "path": "$.title",
+            "required": true
+          }
+        ],
+        "schema_id": "script.schema.json",
+        "schema_version": "1.0.0",
+        "uri": "artifacts/script.json",
+        "validated": true,
+        "validation_error": "none"
+      }
+    ],
+    "artifacts": [
+      {
+        "artifact_id": "art-001",
+        "artifact_name": "final.mp4",
+        "bytes": 1048576,
+        "duration_ms": 60000,
+        "height_px": 1080,
+        "kind": "video",
+        "metadata_json": "{\"codec\":\"h264\"}",
+        "mime_type": "video/mp4",
+        "path": "renders/final.mp4",
+        "payload_json": "{\"ok\":true}",
+        "role": "final",
+        "scene_id": "scene-1",
+        "schema_id": "render_report",
+        "source_tool": "video_compose",
+        "uri": "s3://bucket/final.mp4",
+        "validated": true,
+        "width_px": 1920
+      }
+    ],
+    "checkpoints": [
+      {
+        "artifact_payloads": [
+          {
+            "artifact_name": "script",
+            "metadata_json": "{\"stage\":\"script\"}",
+            "payload_json": "{\"sections\":[]}",
+            "role": "script",
+            "schema_fields": [
+              {
+                "default_json": "\"untitled\"",
+                "description": "The title field.",
+                "enum_values": [
+                  "a",
+                  "b"
+                ],
+                "json_type": "string",
+                "path": "$.title",
+                "required": true
+              }
+            ],
+            "schema_id": "script.schema.json",
+            "schema_version": "1.0.0",
+            "uri": "artifacts/script.json",
+            "validated": true,
+            "validation_error": "none"
+          }
+        ],
+        "artifact_refs": [
+          "script"
+        ],
+        "checkpoint": {
+          "artifacts": [
+            {
+              "artifact_name": "script",
+              "metadata_json": "{\"stage\":\"script\"}",
+              "payload_json": "{\"sections\":[]}",
+              "role": "script",
+              "schema_fields": [
+                {
+                  "default_json": "\"untitled\"",
+                  "description": "The title field.",
+                  "enum_values": [
+                    "a",
+                    "b"
+                  ],
+                  "json_type": "string",
+                  "path": "$.title",
+                  "required": true
+                }
+              ],
+              "schema_id": "script.schema.json",
+              "schema_version": "1.0.0",
+              "uri": "artifacts/script.json",
+              "validated": true,
+              "validation_error": "none"
+            }
+          ],
+          "artifacts_json": "[{\"artifact_name\":\"script\"}]",
+          "checkpoint_policy": "creative_stages",
+          "cost_snapshot_json": "{\"usd\":1.0}",
+          "error": "none",
+          "human_approval_required": true,
+          "human_approved": true,
+          "metadata_json": "{\"k\":\"v\"}",
+          "path": "pipelines/proj-001/checkpoint_script.json",
+          "pipeline_type": "animated-explainer",
+          "project_id": "proj-001",
+          "review_json": "{\"findings\":[]}",
+          "stage": "script",
+          "status": "completed",
+          "style_playbook": "flat-motion-graphics",
+          "timestamp": "2026-01-01T00:00:00Z",
+          "version": "1.0.0"
+        },
+        "checkpoint_json": "{\"stage\":\"script\"}",
+        "cost_snapshot_json": "{\"usd\":1.0}",
+        "created_at": "2026-01-01T00:00:00Z",
+        "review_json": "{\"findings\":[]}",
+        "sequence": 3,
+        "stage": "script",
+        "status": "completed",
+        "summary": "script complete"
+      }
+    ],
+    "current_stage": "assets",
+    "decisions": [
+      {
+        "category": "render_runtime_selection",
+        "confidence": "high",
+        "created_at": "2026-01-01T00:00:00Z",
+        "options_json": "[\"remotion\",\"ffmpeg\"]",
+        "selected_option": "remotion",
+        "sequence": 2,
+        "summary": "chose remotion"
+      }
+    ],
+    "error": {
+      "code": "validation_error",
+      "detail_json": "{\"field\":\"title\"}",
+      "message": "validation failed",
+      "retryable": false
+    },
+    "full_checkpoints": [
+      {
+        "artifacts": [
+          {
+            "artifact_name": "script",
+            "metadata_json": "{\"stage\":\"script\"}",
+            "payload_json": "{\"sections\":[]}",
+            "role": "script",
+            "schema_fields": [
+              {
+                "default_json": "\"untitled\"",
+                "description": "The title field.",
+                "enum_values": [
+                  "a",
+                  "b"
+                ],
+                "json_type": "string",
+                "path": "$.title",
+                "required": true
+              }
+            ],
+            "schema_id": "script.schema.json",
+            "schema_version": "1.0.0",
+            "uri": "artifacts/script.json",
+            "validated": true,
+            "validation_error": "none"
+          }
+        ],
+        "artifacts_json": "[{\"artifact_name\":\"script\"}]",
+        "checkpoint_policy": "creative_stages",
+        "cost_snapshot_json": "{\"usd\":1.0}",
+        "error": "none",
+        "human_approval_required": true,
+        "human_approved": true,
+        "metadata_json": "{\"k\":\"v\"}",
+        "path": "pipelines/proj-001/checkpoint_script.json",
+        "pipeline_type": "animated-explainer",
+        "project_id": "proj-001",
+        "review_json": "{\"findings\":[]}",
+        "stage": "script",
+        "status": "completed",
+        "style_playbook": "flat-motion-graphics",
+        "timestamp": "2026-01-01T00:00:00Z",
+        "version": "1.0.0"
+      }
+    ],
+    "job": {
+      "correlation_id": "corr-001",
+      "idempotency_key": "idem-001",
+      "job_id": "job-001",
+      "project_id": "proj-001",
+      "request_id": "req-001"
+    },
+    "metrics_json": "{\"frames\":1800}",
+    "pipeline": "animated-explainer",
+    "pipeline_manifest": {
+      "category": "explainer",
+      "compatible_playbooks": [
+        "flat-motion-graphics"
+      ],
+      "compatible_playbooks_json": "[\"flat-motion-graphics\"]",
+      "default_checkpoint_policy": "creative_stages",
+      "description": "Topic to fully generated explainer.",
+      "extensions": {
+        "custom_playbooks": true,
+        "custom_scripts": true,
+        "custom_skills": false,
+        "custom_tools": false
+      },
+      "metadata_json": "{\"v\":1}",
+      "name": "animated-explainer",
+      "orchestration": {
+        "budget_default_usd": 10.0,
+        "max_revisions_per_stage": 2,
+        "max_send_backs": 1,
+        "max_wall_time_minutes": 30,
+        "mode": "autonomous",
+        "skill": "skills/meta/orchestrator.md"
+      },
+      "raw_manifest_json": "{\"name\":\"animated-explainer\"}",
+      "reference_input": {
+        "analysis_depth": "deep",
+        "analysis_tools": [
+          "video_analyzer",
+          "transcriber"
+        ],
+        "supported": true
+      },
+      "required_skills": [
+        "reviewer"
+      ],
+      "stability": "production",
+      "stages": [
+        {
+          "agent": "composer",
+          "checkpoint_required": true,
+          "fallback_tools": [
+            "video_stitch"
+          ],
+          "human_approval_default": false,
+          "metadata_json": "{\"order\":6}",
+          "name": "compose",
+          "optional_artifacts_in": [
+            "music"
+          ],
+          "optional_tools": [
+            "audio_mixer"
+          ],
+          "preferred_tools": [
+            "video_compose"
+          ],
+          "produces": [
+            "render_report"
+          ],
+          "required_artifacts_in": [
+            "edit_decisions"
+          ],
+          "required_tools": [
+            "video_compose"
+          ],
+          "review_focus": [
+            "encoding"
+          ],
+          "skill": "skills/pipelines/x/compose-director.md",
+          "sub_stages": [
+            {
+              "condition": "always",
+              "description": "A sub stage.",
+              "human_approval_default": true,
+              "name": "sub-1",
+              "review_focus": [
+                "timing"
+              ],
+              "tools_available": [
+                "video_compose"
+              ]
+            }
+          ],
+          "success_criteria": [
+            "final.mp4 exists"
+          ],
+          "tools_available": [
+            "video_compose",
+            "audio_mixer"
+          ]
+        }
+      ],
+      "version": "1.0.0"
+    },
+    "preflight": {
+      "capabilities": [
+        {
+          "available_providers": [
+            "elevenlabs"
+          ],
+          "capability": "tts",
+          "configured": 1,
+          "total": 3,
+          "unavailable_providers": [
+            "openai",
+            "piper"
+          ]
+        }
+      ],
+      "captured_at": "2026-01-01T00:00:00Z",
+      "composition_runtimes": [
+        {
+          "available": true,
+          "name": "remotion",
+          "note": "node present",
+          "warnings": [
+            "slow first render"
+          ]
+        }
+      ],
+      "pipelines": [
+        {
+          "category": "explainer",
+          "compatible_playbooks": [
+            "flat-motion-graphics"
+          ],
+          "compatible_playbooks_json": "[\"flat-motion-graphics\"]",
+          "default_checkpoint_policy": "creative_stages",
+          "description": "Topic to fully generated explainer.",
+          "extensions": {
+            "custom_playbooks": true,
+            "custom_scripts": true,
+            "custom_skills": false,
+            "custom_tools": false
+          },
+          "metadata_json": "{\"v\":1}",
+          "name": "animated-explainer",
+          "orchestration": {
+            "budget_default_usd": 10.0,
+            "max_revisions_per_stage": 2,
+            "max_send_backs": 1,
+            "max_wall_time_minutes": 30,
+            "mode": "autonomous",
+            "skill": "skills/meta/orchestrator.md"
+          },
+          "raw_manifest_json": "{\"name\":\"animated-explainer\"}",
+          "reference_input": {
+            "analysis_depth": "deep",
+            "analysis_tools": [
+              "video_analyzer",
+              "transcriber"
+            ],
+            "supported": true
+          },
+          "required_skills": [
+            "reviewer"
+          ],
+          "stability": "production",
+          "stages": [
+            {
+              "agent": "composer",
+              "checkpoint_required": true,
+              "fallback_tools": [
+                "video_stitch"
+              ],
+              "human_approval_default": false,
+              "metadata_json": "{\"order\":6}",
+              "name": "compose",
+              "optional_artifacts_in": [
+                "music"
+              ],
+              "optional_tools": [
+                "audio_mixer"
+              ],
+              "preferred_tools": [
+                "video_compose"
+              ],
+              "produces": [
+                "render_report"
+              ],
+              "required_artifacts_in": [
+                "edit_decisions"
+              ],
+              "required_tools": [
+                "video_compose"
+              ],
+              "review_focus": [
+                "encoding"
+              ],
+              "skill": "skills/pipelines/x/compose-director.md",
+              "sub_stages": [
+                {
+                  "condition": "always",
+                  "description": "A sub stage.",
+                  "human_approval_default": true,
+                  "name": "sub-1",
+                  "review_focus": [
+                    "timing"
+                  ],
+                  "tools_available": [
+                    "video_compose"
+                  ]
+                }
+              ],
+              "success_criteria": [
+                "final.mp4 exists"
+              ],
+              "tools_available": [
+                "video_compose",
+                "audio_mixer"
+              ]
+            }
+          ],
+          "version": "1.0.0"
+        }
+      ],
+      "provider_menu_json": "{\"capabilities\":[]}",
+      "provider_menu_summary_json": "{\"composition_runtimes\":{}}",
+      "runtime_warnings": [
+        "hyperframes: npm package not resolvable"
+      ],
+      "setup_offers": [
+        {
+          "capability": "video_generation",
+          "install_instructions": "set FAL_KEY",
+          "provider": "kling",
+          "tool": "kling_video"
+        }
+      ],
+      "support_envelope_json": "{\"tools\":[]}",
+      "tools": [
+        {
+          "agent_skills": [
+            "ffmpeg"
+          ],
+          "artifact_schema_json": "{\"type\":\"array\"}",
+          "best_for": [
+            "cuts",
+            "concat"
+          ],
+          "capabilities": [
+            "concat",
+            "trim"
+          ],
+          "capability": "video_post",
+          "dependencies": [
+            "ffmpeg"
+          ],
+          "determinism": "deterministic",
+          "execution_mode": "local",
+          "fallback": "video_stitch",
+          "fallback_tools": [
+            "video_stitch",
+            "video_trimmer"
+          ],
+          "historical_success_rate": 0.99,
+          "hyperframes_note": "needs node22",
+          "input_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "input_schema_json": "{\"type\":\"object\"}",
+          "install_instructions": "brew install ffmpeg",
+          "latency_p50_seconds": 12.5,
+          "module_path": "tools.video.video_compose",
+          "name": "video_compose",
+          "not_good_for": [
+            "3d"
+          ],
+          "output_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "output_schema_json": "{\"type\":\"object\"}",
+          "progress_schema_json": "{\"type\":\"number\"}",
+          "provider": "ffmpeg",
+          "provider_matrix_json": "{\"ffmpeg\":\"ok\"}",
+          "quality_score": 0.95,
+          "raw_info_json": "{\"k\":\"v\"}",
+          "related_skills": [
+            "remotion"
+          ],
+          "remotion_note": "needs node",
+          "render_engines_json": "[\"ffmpeg\",\"remotion\"]",
+          "render_runtimes_json": "[\"ffmpeg\"]",
+          "resource_profile": {
+            "cpu_cores": 4,
+            "disk_mb": 20480,
+            "network_required": true,
+            "ram_mb": 8192,
+            "vram_mb": 4096
+          },
+          "resume_support": "checkpoint",
+          "retry_policy": {
+            "backoff_seconds": 2.5,
+            "max_retries": 3,
+            "retryable_errors": [
+              "provider_unavailable",
+              "render_failed"
+            ]
+          },
+          "runtime": "LOCAL",
+          "runtime_governance": "locked_at_proposal",
+          "side_effects": [
+            "writes_disk"
+          ],
+          "stability": "production",
+          "status": "available",
+          "supports_json": "{\"subtitle_burn\":true}",
+          "tier": "core",
+          "usage_location": "tools/video/video_compose.py",
+          "user_visible_verification": [
+            "play the output"
+          ],
+          "version": "1.2.3"
+        }
+      ]
+    },
+    "progress_pct": 42,
+    "status": "running",
+    "tool_results": [
+      {
+        "artifact_uris": [
+          "s3://bucket/final.mp4"
+        ],
+        "artifacts": [
+          {
+            "artifact_id": "art-001",
+            "artifact_name": "final.mp4",
+            "bytes": 1048576,
+            "duration_ms": 60000,
+            "height_px": 1080,
+            "kind": "video",
+            "metadata_json": "{\"codec\":\"h264\"}",
+            "mime_type": "video/mp4",
+            "path": "renders/final.mp4",
+            "payload_json": "{\"ok\":true}",
+            "role": "final",
+            "scene_id": "scene-1",
+            "schema_id": "render_report",
+            "source_tool": "video_compose",
+            "uri": "s3://bucket/final.mp4",
+            "validated": true,
+            "width_px": 1920
+          }
+        ],
+        "cost_usd": 1.25,
+        "data_json": "{\"output\":\"final.mp4\"}",
+        "duration_seconds": 12.5,
+        "error": "none",
+        "invocation_id": "inv-001",
+        "metadata_json": "{\"attempt\":1}",
+        "model": "ffmpeg-6",
+        "raw_artifacts_json": "[{\"uri\":\"s3://bucket/final.mp4\"}]",
+        "seed": 42,
+        "success": true,
+        "tool_name": "video_compose"
+      }
+    ],
+    "updated_at": "2026-01-01T00:10:00Z",
+    "version": "v1"
+  },
+  "OpenMontagePipelineManifest": {
+    "category": "explainer",
+    "compatible_playbooks": [
+      "flat-motion-graphics"
+    ],
+    "compatible_playbooks_json": "[\"flat-motion-graphics\"]",
+    "default_checkpoint_policy": "creative_stages",
+    "description": "Topic to fully generated explainer.",
+    "extensions": {
+      "custom_playbooks": true,
+      "custom_scripts": true,
+      "custom_skills": false,
+      "custom_tools": false
+    },
+    "metadata_json": "{\"v\":1}",
+    "name": "animated-explainer",
+    "orchestration": {
+      "budget_default_usd": 10.0,
+      "max_revisions_per_stage": 2,
+      "max_send_backs": 1,
+      "max_wall_time_minutes": 30,
+      "mode": "autonomous",
+      "skill": "skills/meta/orchestrator.md"
+    },
+    "raw_manifest_json": "{\"name\":\"animated-explainer\"}",
+    "reference_input": {
+      "analysis_depth": "deep",
+      "analysis_tools": [
+        "video_analyzer",
+        "transcriber"
+      ],
+      "supported": true
+    },
+    "required_skills": [
+      "reviewer"
+    ],
+    "stability": "production",
+    "stages": [
+      {
+        "agent": "composer",
+        "checkpoint_required": true,
+        "fallback_tools": [
+          "video_stitch"
+        ],
+        "human_approval_default": false,
+        "metadata_json": "{\"order\":6}",
+        "name": "compose",
+        "optional_artifacts_in": [
+          "music"
+        ],
+        "optional_tools": [
+          "audio_mixer"
+        ],
+        "preferred_tools": [
+          "video_compose"
+        ],
+        "produces": [
+          "render_report"
+        ],
+        "required_artifacts_in": [
+          "edit_decisions"
+        ],
+        "required_tools": [
+          "video_compose"
+        ],
+        "review_focus": [
+          "encoding"
+        ],
+        "skill": "skills/pipelines/x/compose-director.md",
+        "sub_stages": [
+          {
+            "condition": "always",
+            "description": "A sub stage.",
+            "human_approval_default": true,
+            "name": "sub-1",
+            "review_focus": [
+              "timing"
+            ],
+            "tools_available": [
+              "video_compose"
+            ]
+          }
+        ],
+        "success_criteria": [
+          "final.mp4 exists"
+        ],
+        "tools_available": [
+          "video_compose",
+          "audio_mixer"
+        ]
+      }
+    ],
+    "version": "1.0.0"
+  },
+  "OpenMontagePipelineOrchestration": {
+    "budget_default_usd": 10.0,
+    "max_revisions_per_stage": 2,
+    "max_send_backs": 1,
+    "max_wall_time_minutes": 30,
+    "mode": "autonomous",
+    "skill": "skills/meta/orchestrator.md"
+  },
+  "OpenMontagePipelineStage": {
+    "agent": "composer",
+    "checkpoint_required": true,
+    "fallback_tools": [
+      "video_stitch"
+    ],
+    "human_approval_default": false,
+    "metadata_json": "{\"order\":6}",
+    "name": "compose",
+    "optional_artifacts_in": [
+      "music"
+    ],
+    "optional_tools": [
+      "audio_mixer"
+    ],
+    "preferred_tools": [
+      "video_compose"
+    ],
+    "produces": [
+      "render_report"
+    ],
+    "required_artifacts_in": [
+      "edit_decisions"
+    ],
+    "required_tools": [
+      "video_compose"
+    ],
+    "review_focus": [
+      "encoding"
+    ],
+    "skill": "skills/pipelines/x/compose-director.md",
+    "sub_stages": [
+      {
+        "condition": "always",
+        "description": "A sub stage.",
+        "human_approval_default": true,
+        "name": "sub-1",
+        "review_focus": [
+          "timing"
+        ],
+        "tools_available": [
+          "video_compose"
+        ]
+      }
+    ],
+    "success_criteria": [
+      "final.mp4 exists"
+    ],
+    "tools_available": [
+      "video_compose",
+      "audio_mixer"
+    ]
+  },
+  "OpenMontagePipelineSubStage": {
+    "condition": "always",
+    "description": "A sub stage.",
+    "human_approval_default": true,
+    "name": "sub-1",
+    "review_focus": [
+      "timing"
+    ],
+    "tools_available": [
+      "video_compose"
+    ]
+  },
+  "OpenMontagePreflightSnapshot": {
+    "capabilities": [
+      {
+        "available_providers": [
+          "elevenlabs"
+        ],
+        "capability": "tts",
+        "configured": 1,
+        "total": 3,
+        "unavailable_providers": [
+          "openai",
+          "piper"
+        ]
+      }
+    ],
+    "captured_at": "2026-01-01T00:00:00Z",
+    "composition_runtimes": [
+      {
+        "available": true,
+        "name": "remotion",
+        "note": "node present",
+        "warnings": [
+          "slow first render"
+        ]
+      }
+    ],
+    "pipelines": [
+      {
+        "category": "explainer",
+        "compatible_playbooks": [
+          "flat-motion-graphics"
+        ],
+        "compatible_playbooks_json": "[\"flat-motion-graphics\"]",
+        "default_checkpoint_policy": "creative_stages",
+        "description": "Topic to fully generated explainer.",
+        "extensions": {
+          "custom_playbooks": true,
+          "custom_scripts": true,
+          "custom_skills": false,
+          "custom_tools": false
+        },
+        "metadata_json": "{\"v\":1}",
+        "name": "animated-explainer",
+        "orchestration": {
+          "budget_default_usd": 10.0,
+          "max_revisions_per_stage": 2,
+          "max_send_backs": 1,
+          "max_wall_time_minutes": 30,
+          "mode": "autonomous",
+          "skill": "skills/meta/orchestrator.md"
+        },
+        "raw_manifest_json": "{\"name\":\"animated-explainer\"}",
+        "reference_input": {
+          "analysis_depth": "deep",
+          "analysis_tools": [
+            "video_analyzer",
+            "transcriber"
+          ],
+          "supported": true
+        },
+        "required_skills": [
+          "reviewer"
+        ],
+        "stability": "production",
+        "stages": [
+          {
+            "agent": "composer",
+            "checkpoint_required": true,
+            "fallback_tools": [
+              "video_stitch"
+            ],
+            "human_approval_default": false,
+            "metadata_json": "{\"order\":6}",
+            "name": "compose",
+            "optional_artifacts_in": [
+              "music"
+            ],
+            "optional_tools": [
+              "audio_mixer"
+            ],
+            "preferred_tools": [
+              "video_compose"
+            ],
+            "produces": [
+              "render_report"
+            ],
+            "required_artifacts_in": [
+              "edit_decisions"
+            ],
+            "required_tools": [
+              "video_compose"
+            ],
+            "review_focus": [
+              "encoding"
+            ],
+            "skill": "skills/pipelines/x/compose-director.md",
+            "sub_stages": [
+              {
+                "condition": "always",
+                "description": "A sub stage.",
+                "human_approval_default": true,
+                "name": "sub-1",
+                "review_focus": [
+                  "timing"
+                ],
+                "tools_available": [
+                  "video_compose"
+                ]
+              }
+            ],
+            "success_criteria": [
+              "final.mp4 exists"
+            ],
+            "tools_available": [
+              "video_compose",
+              "audio_mixer"
+            ]
+          }
+        ],
+        "version": "1.0.0"
+      }
+    ],
+    "provider_menu_json": "{\"capabilities\":[]}",
+    "provider_menu_summary_json": "{\"composition_runtimes\":{}}",
+    "runtime_warnings": [
+      "hyperframes: npm package not resolvable"
+    ],
+    "setup_offers": [
+      {
+        "capability": "video_generation",
+        "install_instructions": "set FAL_KEY",
+        "provider": "kling",
+        "tool": "kling_video"
+      }
+    ],
+    "support_envelope_json": "{\"tools\":[]}",
+    "tools": [
+      {
+        "agent_skills": [
+          "ffmpeg"
+        ],
+        "artifact_schema_json": "{\"type\":\"array\"}",
+        "best_for": [
+          "cuts",
+          "concat"
+        ],
+        "capabilities": [
+          "concat",
+          "trim"
+        ],
+        "capability": "video_post",
+        "dependencies": [
+          "ffmpeg"
+        ],
+        "determinism": "deterministic",
+        "execution_mode": "local",
+        "fallback": "video_stitch",
+        "fallback_tools": [
+          "video_stitch",
+          "video_trimmer"
+        ],
+        "historical_success_rate": 0.99,
+        "hyperframes_note": "needs node22",
+        "input_fields": [
+          {
+            "default_json": "\"untitled\"",
+            "description": "The title field.",
+            "enum_values": [
+              "a",
+              "b"
+            ],
+            "json_type": "string",
+            "path": "$.title",
+            "required": true
+          }
+        ],
+        "input_schema_json": "{\"type\":\"object\"}",
+        "install_instructions": "brew install ffmpeg",
+        "latency_p50_seconds": 12.5,
+        "module_path": "tools.video.video_compose",
+        "name": "video_compose",
+        "not_good_for": [
+          "3d"
+        ],
+        "output_fields": [
+          {
+            "default_json": "\"untitled\"",
+            "description": "The title field.",
+            "enum_values": [
+              "a",
+              "b"
+            ],
+            "json_type": "string",
+            "path": "$.title",
+            "required": true
+          }
+        ],
+        "output_schema_json": "{\"type\":\"object\"}",
+        "progress_schema_json": "{\"type\":\"number\"}",
+        "provider": "ffmpeg",
+        "provider_matrix_json": "{\"ffmpeg\":\"ok\"}",
+        "quality_score": 0.95,
+        "raw_info_json": "{\"k\":\"v\"}",
+        "related_skills": [
+          "remotion"
+        ],
+        "remotion_note": "needs node",
+        "render_engines_json": "[\"ffmpeg\",\"remotion\"]",
+        "render_runtimes_json": "[\"ffmpeg\"]",
+        "resource_profile": {
+          "cpu_cores": 4,
+          "disk_mb": 20480,
+          "network_required": true,
+          "ram_mb": 8192,
+          "vram_mb": 4096
+        },
+        "resume_support": "checkpoint",
+        "retry_policy": {
+          "backoff_seconds": 2.5,
+          "max_retries": 3,
+          "retryable_errors": [
+            "provider_unavailable",
+            "render_failed"
+          ]
+        },
+        "runtime": "LOCAL",
+        "runtime_governance": "locked_at_proposal",
+        "side_effects": [
+          "writes_disk"
+        ],
+        "stability": "production",
+        "status": "available",
+        "supports_json": "{\"subtitle_burn\":true}",
+        "tier": "core",
+        "usage_location": "tools/video/video_compose.py",
+        "user_visible_verification": [
+          "play the output"
+        ],
+        "version": "1.2.3"
+      }
+    ]
+  },
+  "OpenMontageProfessionalVideoRequest": {
+    "approval_policy": "creative_stages",
+    "artifact_inputs": [
+      {
+        "artifact_name": "script",
+        "metadata_json": "{\"stage\":\"script\"}",
+        "payload_json": "{\"sections\":[]}",
+        "role": "script",
+        "schema_fields": [
+          {
+            "default_json": "\"untitled\"",
+            "description": "The title field.",
+            "enum_values": [
+              "a",
+              "b"
+            ],
+            "json_type": "string",
+            "path": "$.title",
+            "required": true
+          }
+        ],
+        "schema_id": "script.schema.json",
+        "schema_version": "1.0.0",
+        "uri": "artifacts/script.json",
+        "validated": true,
+        "validation_error": "none"
+      }
+    ],
+    "aspect_ratio": "9:16",
+    "assets": [
+      {
+        "duration_ms": 5000,
+        "height_px": 1080,
+        "kind": "reference_video",
+        "metadata_json": "{\"fps\":30}",
+        "mime_type": "video/mp4",
+        "role": "reference",
+        "uri": "s3://bucket/reference.mp4",
+        "width_px": 1920
+      }
+    ],
+    "audience": "general",
+    "brand_json": "{\"primary\":\"#000000\"}",
+    "budget_limit_usd": 25.0,
+    "callback": {
+      "callback_secret_ref": "secret://cb",
+      "callback_url": "https://hooks.example/cb",
+      "event_types": [
+        "job_completed",
+        "job_failed"
+      ]
+    },
+    "delivery_promise_json": "{\"motion\":true}",
+    "duration_seconds": 60,
+    "idempotency_key": "idem-001",
+    "input_mode": "prompt",
+    "language": "en",
+    "metadata_json": "{\"source\":\"api\"}",
+    "music_plan_json": "{\"source\":\"library\"}",
+    "objective": "educate",
+    "openmontage_request_json": "{\"raw\":true}",
+    "output_profile": "1080p",
+    "pipeline": "animated-explainer",
+    "pipeline_manifest": {
+      "category": "explainer",
+      "compatible_playbooks": [
+        "flat-motion-graphics"
+      ],
+      "compatible_playbooks_json": "[\"flat-motion-graphics\"]",
+      "default_checkpoint_policy": "creative_stages",
+      "description": "Topic to fully generated explainer.",
+      "extensions": {
+        "custom_playbooks": true,
+        "custom_scripts": true,
+        "custom_skills": false,
+        "custom_tools": false
+      },
+      "metadata_json": "{\"v\":1}",
+      "name": "animated-explainer",
+      "orchestration": {
+        "budget_default_usd": 10.0,
+        "max_revisions_per_stage": 2,
+        "max_send_backs": 1,
+        "max_wall_time_minutes": 30,
+        "mode": "autonomous",
+        "skill": "skills/meta/orchestrator.md"
+      },
+      "raw_manifest_json": "{\"name\":\"animated-explainer\"}",
+      "reference_input": {
+        "analysis_depth": "deep",
+        "analysis_tools": [
+          "video_analyzer",
+          "transcriber"
+        ],
+        "supported": true
+      },
+      "required_skills": [
+        "reviewer"
+      ],
+      "stability": "production",
+      "stages": [
+        {
+          "agent": "composer",
+          "checkpoint_required": true,
+          "fallback_tools": [
+            "video_stitch"
+          ],
+          "human_approval_default": false,
+          "metadata_json": "{\"order\":6}",
+          "name": "compose",
+          "optional_artifacts_in": [
+            "music"
+          ],
+          "optional_tools": [
+            "audio_mixer"
+          ],
+          "preferred_tools": [
+            "video_compose"
+          ],
+          "produces": [
+            "render_report"
+          ],
+          "required_artifacts_in": [
+            "edit_decisions"
+          ],
+          "required_tools": [
+            "video_compose"
+          ],
+          "review_focus": [
+            "encoding"
+          ],
+          "skill": "skills/pipelines/x/compose-director.md",
+          "sub_stages": [
+            {
+              "condition": "always",
+              "description": "A sub stage.",
+              "human_approval_default": true,
+              "name": "sub-1",
+              "review_focus": [
+                "timing"
+              ],
+              "tools_available": [
+                "video_compose"
+              ]
+            }
+          ],
+          "success_criteria": [
+            "final.mp4 exists"
+          ],
+          "tools_available": [
+            "video_compose",
+            "audio_mixer"
+          ]
+        }
+      ],
+      "version": "1.0.0"
+    },
+    "preflight_policy": "required",
+    "prompt": "Explain black holes in 60s.",
+    "provider_preferences": {
+      "image_generation": "flux",
+      "tts": "elevenlabs"
+    },
+    "provider_slots": {
+      "video_generation": "kling"
+    },
+    "quality_tier": "premium",
+    "render_runtime": "remotion",
+    "renderer_family": "remotion",
+    "request_id": "req-001",
+    "source_script": "Once upon a time...",
+    "source_script_uri": "s3://bucket/script.txt",
+    "style_playbook": "flat-motion-graphics",
+    "target_platform": "youtube_shorts",
+    "tenant_id": "tenant-001",
+    "title": "Black Holes",
+    "tool_invocations": [
+      {
+        "capability": "video_post",
+        "contract_version": "1.2.3",
+        "dry_run": true,
+        "expected_artifact_roles": [
+          "final"
+        ],
+        "idempotency_key": "inv-idem-001",
+        "input_json": "{\"cuts\":[]}",
+        "invocation_id": "inv-001",
+        "max_cost_usd": 1.5,
+        "metadata_json": "{\"attempt\":1}",
+        "operation": "render",
+        "provider": "ffmpeg",
+        "role": "primary",
+        "stage": "compose",
+        "tool_name": "video_compose"
+      }
+    ],
+    "user_id": "user-001",
+    "version": "v1",
+    "voice_selection_json": "{\"voice\":\"rachel\"}"
+  },
+  "OpenMontageReferenceInputConfig": {
+    "analysis_depth": "deep",
+    "analysis_tools": [
+      "video_analyzer",
+      "transcriber"
+    ],
+    "supported": true
+  },
+  "OpenMontageResourceProfile": {
+    "cpu_cores": 4,
+    "disk_mb": 20480,
+    "network_required": true,
+    "ram_mb": 8192,
+    "vram_mb": 4096
+  },
+  "OpenMontageRetryPolicy": {
+    "backoff_seconds": 2.5,
+    "max_retries": 3,
+    "retryable_errors": [
+      "provider_unavailable",
+      "render_failed"
+    ]
+  },
+  "OpenMontageRuntimeAvailability": {
+    "available": true,
+    "name": "remotion",
+    "note": "node present",
+    "warnings": [
+      "slow first render"
+    ]
+  },
+  "OpenMontageSchemaField": {
+    "default_json": "\"untitled\"",
+    "description": "The title field.",
+    "enum_values": [
+      "a",
+      "b"
+    ],
+    "json_type": "string",
+    "path": "$.title",
+    "required": true
+  },
+  "OpenMontageSetupOffer": {
+    "capability": "video_generation",
+    "install_instructions": "set FAL_KEY",
+    "provider": "kling",
+    "tool": "kling_video"
+  },
+  "OpenMontageStageCheckpoint": {
+    "artifact_payloads": [
+      {
+        "artifact_name": "script",
+        "metadata_json": "{\"stage\":\"script\"}",
+        "payload_json": "{\"sections\":[]}",
+        "role": "script",
+        "schema_fields": [
+          {
+            "default_json": "\"untitled\"",
+            "description": "The title field.",
+            "enum_values": [
+              "a",
+              "b"
+            ],
+            "json_type": "string",
+            "path": "$.title",
+            "required": true
+          }
+        ],
+        "schema_id": "script.schema.json",
+        "schema_version": "1.0.0",
+        "uri": "artifacts/script.json",
+        "validated": true,
+        "validation_error": "none"
+      }
+    ],
+    "artifact_refs": [
+      "script"
+    ],
+    "checkpoint": {
+      "artifacts": [
+        {
+          "artifact_name": "script",
+          "metadata_json": "{\"stage\":\"script\"}",
+          "payload_json": "{\"sections\":[]}",
+          "role": "script",
+          "schema_fields": [
+            {
+              "default_json": "\"untitled\"",
+              "description": "The title field.",
+              "enum_values": [
+                "a",
+                "b"
+              ],
+              "json_type": "string",
+              "path": "$.title",
+              "required": true
+            }
+          ],
+          "schema_id": "script.schema.json",
+          "schema_version": "1.0.0",
+          "uri": "artifacts/script.json",
+          "validated": true,
+          "validation_error": "none"
+        }
+      ],
+      "artifacts_json": "[{\"artifact_name\":\"script\"}]",
+      "checkpoint_policy": "creative_stages",
+      "cost_snapshot_json": "{\"usd\":1.0}",
+      "error": "none",
+      "human_approval_required": true,
+      "human_approved": true,
+      "metadata_json": "{\"k\":\"v\"}",
+      "path": "pipelines/proj-001/checkpoint_script.json",
+      "pipeline_type": "animated-explainer",
+      "project_id": "proj-001",
+      "review_json": "{\"findings\":[]}",
+      "stage": "script",
+      "status": "completed",
+      "style_playbook": "flat-motion-graphics",
+      "timestamp": "2026-01-01T00:00:00Z",
+      "version": "1.0.0"
+    },
+    "checkpoint_json": "{\"stage\":\"script\"}",
+    "cost_snapshot_json": "{\"usd\":1.0}",
+    "created_at": "2026-01-01T00:00:00Z",
+    "review_json": "{\"findings\":[]}",
+    "sequence": 3,
+    "stage": "script",
+    "status": "completed",
+    "summary": "script complete"
+  },
+  "OpenMontageSubmitResponse": {
+    "accepted_at": "2026-01-01T00:00:00Z",
+    "error": {
+      "code": "validation_error",
+      "detail_json": "{\"field\":\"title\"}",
+      "message": "validation failed",
+      "retryable": false
+    },
+    "job": {
+      "correlation_id": "corr-001",
+      "idempotency_key": "idem-001",
+      "job_id": "job-001",
+      "project_id": "proj-001",
+      "request_id": "req-001"
+    },
+    "next_event_sequence": 1,
+    "status": "queued",
+    "status_url": "https://api.example/jobs/job-001",
+    "version": "v1"
+  },
+  "OpenMontageToolContract": {
+    "agent_skills": [
+      "ffmpeg"
+    ],
+    "artifact_schema_json": "{\"type\":\"array\"}",
+    "best_for": [
+      "cuts",
+      "concat"
+    ],
+    "capabilities": [
+      "concat",
+      "trim"
+    ],
+    "capability": "video_post",
+    "dependencies": [
+      "ffmpeg"
+    ],
+    "determinism": "deterministic",
+    "execution_mode": "local",
+    "fallback": "video_stitch",
+    "fallback_tools": [
+      "video_stitch",
+      "video_trimmer"
+    ],
+    "historical_success_rate": 0.99,
+    "hyperframes_note": "needs node22",
+    "input_fields": [
+      {
+        "default_json": "\"untitled\"",
+        "description": "The title field.",
+        "enum_values": [
+          "a",
+          "b"
+        ],
+        "json_type": "string",
+        "path": "$.title",
+        "required": true
+      }
+    ],
+    "input_schema_json": "{\"type\":\"object\"}",
+    "install_instructions": "brew install ffmpeg",
+    "latency_p50_seconds": 12.5,
+    "module_path": "tools.video.video_compose",
+    "name": "video_compose",
+    "not_good_for": [
+      "3d"
+    ],
+    "output_fields": [
+      {
+        "default_json": "\"untitled\"",
+        "description": "The title field.",
+        "enum_values": [
+          "a",
+          "b"
+        ],
+        "json_type": "string",
+        "path": "$.title",
+        "required": true
+      }
+    ],
+    "output_schema_json": "{\"type\":\"object\"}",
+    "progress_schema_json": "{\"type\":\"number\"}",
+    "provider": "ffmpeg",
+    "provider_matrix_json": "{\"ffmpeg\":\"ok\"}",
+    "quality_score": 0.95,
+    "raw_info_json": "{\"k\":\"v\"}",
+    "related_skills": [
+      "remotion"
+    ],
+    "remotion_note": "needs node",
+    "render_engines_json": "[\"ffmpeg\",\"remotion\"]",
+    "render_runtimes_json": "[\"ffmpeg\"]",
+    "resource_profile": {
+      "cpu_cores": 4,
+      "disk_mb": 20480,
+      "network_required": true,
+      "ram_mb": 8192,
+      "vram_mb": 4096
+    },
+    "resume_support": "checkpoint",
+    "retry_policy": {
+      "backoff_seconds": 2.5,
+      "max_retries": 3,
+      "retryable_errors": [
+        "provider_unavailable",
+        "render_failed"
+      ]
+    },
+    "runtime": "LOCAL",
+    "runtime_governance": "locked_at_proposal",
+    "side_effects": [
+      "writes_disk"
+    ],
+    "stability": "production",
+    "status": "available",
+    "supports_json": "{\"subtitle_burn\":true}",
+    "tier": "core",
+    "usage_location": "tools/video/video_compose.py",
+    "user_visible_verification": [
+      "play the output"
+    ],
+    "version": "1.2.3"
+  },
+  "OpenMontageToolInvocation": {
+    "capability": "video_post",
+    "contract_version": "1.2.3",
+    "dry_run": true,
+    "expected_artifact_roles": [
+      "final"
+    ],
+    "idempotency_key": "inv-idem-001",
+    "input_json": "{\"cuts\":[]}",
+    "invocation_id": "inv-001",
+    "max_cost_usd": 1.5,
+    "metadata_json": "{\"attempt\":1}",
+    "operation": "render",
+    "provider": "ffmpeg",
+    "role": "primary",
+    "stage": "compose",
+    "tool_name": "video_compose"
+  },
+  "OpenMontageToolResult": {
+    "artifact_uris": [
+      "s3://bucket/final.mp4"
+    ],
+    "artifacts": [
+      {
+        "artifact_id": "art-001",
+        "artifact_name": "final.mp4",
+        "bytes": 1048576,
+        "duration_ms": 60000,
+        "height_px": 1080,
+        "kind": "video",
+        "metadata_json": "{\"codec\":\"h264\"}",
+        "mime_type": "video/mp4",
+        "path": "renders/final.mp4",
+        "payload_json": "{\"ok\":true}",
+        "role": "final",
+        "scene_id": "scene-1",
+        "schema_id": "render_report",
+        "source_tool": "video_compose",
+        "uri": "s3://bucket/final.mp4",
+        "validated": true,
+        "width_px": 1920
+      }
+    ],
+    "cost_usd": 1.25,
+    "data_json": "{\"output\":\"final.mp4\"}",
+    "duration_seconds": 12.5,
+    "error": "none",
+    "invocation_id": "inv-001",
+    "metadata_json": "{\"attempt\":1}",
+    "model": "ffmpeg-6",
+    "raw_artifacts_json": "[{\"uri\":\"s3://bucket/final.mp4\"}]",
+    "seed": 42,
+    "success": true,
+    "tool_name": "video_compose"
+  },
+  "__enum_carriers__": {
+    "Enum_OpenMontageArtifactKind": "OpenMontageArtifact",
+    "Enum_OpenMontageErrorCode": "OpenMontageError",
+    "Enum_OpenMontageEventType": "OpenMontageJobEvent",
+    "Enum_OpenMontageInputAssetKind": "OpenMontageInputAsset",
+    "Enum_OpenMontageJobStatus": "OpenMontageStageCheckpoint",
+    "Enum_OpenMontageProtocolVersion": "OpenMontageSubmitResponse"
+  }
+}

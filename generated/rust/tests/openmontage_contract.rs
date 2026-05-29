@@ -90,3 +90,219 @@ fn all_enum_variants_roundtrip_as_strings() {
         "expected 85 total OpenMontage enum variants exercised, got {total}"
     );
 }
+
+// ===========================================================================
+// T10-2 (R-PROTO-02): cross-language golden-vector oracle.
+//
+// The golden file `generated/golden/openmontage_vectors.json` is produced by
+// the PYTHON codec (`generated/scripts/gen_openmontage_vectors.py`) and is the
+// reviewed shared oracle. This test is the cross-language parity check: for
+// every entry, DESERIALIZE the golden JSON via the RUST codec, RE-SERIALIZE
+// via the Rust codec, and assert it equals the golden JSON after
+// canonicalization (parse both to `serde_json::Value`, which compares values
+// order-independently but is strictly value-sensitive). If Rust serializes any
+// field differently than the Python-produced golden, this reddens.
+//
+// Entries are enumerated DYNAMICALLY from the JSON map keys. The key->type
+// dispatch below is a `match` (unavoidable in a statically typed language),
+// but it is exhaustive: any golden key with no arm fails the test loudly, so
+// no message can silently be skipped.
+// ===========================================================================
+
+use glance_mind_protocol::glance_mind::{
+    OpenMontageApprovalDecision, OpenMontageApprovalRequest, OpenMontageArtifact,
+    OpenMontageArtifactPayload, OpenMontageCallbackAck, OpenMontageCallbackConfig,
+    OpenMontageCapabilitySummary, OpenMontageCheckpoint, OpenMontageDecision, OpenMontageError,
+    OpenMontageExtensionPermissions, OpenMontageInputAsset, OpenMontageJobEvent, OpenMontageJobRef,
+    OpenMontageJobSnapshot, OpenMontagePipelineManifest, OpenMontagePipelineOrchestration,
+    OpenMontagePipelineStage, OpenMontagePipelineSubStage, OpenMontagePreflightSnapshot,
+    OpenMontageProfessionalVideoRequest, OpenMontageReferenceInputConfig,
+    OpenMontageResourceProfile, OpenMontageRetryPolicy, OpenMontageRuntimeAvailability,
+    OpenMontageSchemaField, OpenMontageSetupOffer, OpenMontageStageCheckpoint,
+    OpenMontageSubmitResponse, OpenMontageToolContract, OpenMontageToolInvocation,
+    OpenMontageToolResult,
+};
+
+/// Reserved (non-message) key in the golden file: maps each `Enum_*` entry to
+/// the carrier message type used to serialize it.
+const ENUM_CARRIERS_KEY: &str = "__enum_carriers__";
+
+/// Load + parse the committed golden file. Path is resolved relative to the
+/// crate manifest dir (`generated/rust/`) so it works regardless of CWD:
+/// `generated/rust/` -> `generated/golden/openmontage_vectors.json`.
+fn load_golden() -> serde_json::Map<String, serde_json::Value> {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("golden")
+        .join("openmontage_vectors.json");
+    let raw = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+        panic!(
+            "golden vector file not found at {}: {e}; regenerate it with \
+             `python generated/scripts/gen_openmontage_vectors.py`",
+            path.display()
+        )
+    });
+    let value: serde_json::Value =
+        serde_json::from_str(&raw).expect("golden vector file is not valid JSON");
+    value
+        .as_object()
+        .expect("golden vector file root must be a JSON object")
+        .clone()
+}
+
+#[test]
+fn matches_golden_vectors() {
+    let golden = load_golden();
+
+    // Pull the enum-carrier metadata: which message type carries each Enum_*.
+    let carriers = golden
+        .get(ENUM_CARRIERS_KEY)
+        .and_then(|v| v.as_object())
+        .expect("golden file missing __enum_carriers__ metadata object")
+        .clone();
+
+    // Re-serialize `$golden_value` through type `$ty` and assert the parsed
+    // result equals the golden value. `$key` names the entry for diagnostics.
+    macro_rules! check_roundtrip {
+        ($ty:ty, $key:expr, $golden_value:expr) => {{
+            let parsed: $ty = serde_json::from_value($golden_value.clone()).unwrap_or_else(|e| {
+                panic!(
+                    "golden entry {} failed to DESERIALIZE via Rust codec as {}: {e}",
+                    $key,
+                    stringify!($ty)
+                )
+            });
+            let regenerated =
+                serde_json::to_value(&parsed).expect("Rust re-serialization to Value failed");
+            // Apples-to-apples: both are serde_json::Value, so comparison is
+            // key-order independent yet strictly value-sensitive.
+            if regenerated != *$golden_value {
+                panic!(
+                    "golden mismatch for {} (type {}): Rust re-serialization differs from the \
+                     committed (Python-produced) golden.\n  golden:      {}\n  regenerated: {}",
+                    $key,
+                    stringify!($ty),
+                    $golden_value,
+                    regenerated
+                );
+            }
+        }};
+    }
+
+    // Dispatch a single entry to the right concrete type. `type_name` is the
+    // message type to deserialize into (for enum carriers this is the carrier
+    // type, resolved from metadata; for messages it is the entry key itself).
+    macro_rules! dispatch {
+        ($type_name:expr, $key:expr, $value:expr) => {
+            match $type_name {
+                "OpenMontageJobRef" => check_roundtrip!(OpenMontageJobRef, $key, $value),
+                "OpenMontageCallbackConfig" => {
+                    check_roundtrip!(OpenMontageCallbackConfig, $key, $value)
+                }
+                "OpenMontageInputAsset" => check_roundtrip!(OpenMontageInputAsset, $key, $value),
+                "OpenMontageSchemaField" => check_roundtrip!(OpenMontageSchemaField, $key, $value),
+                "OpenMontageResourceProfile" => {
+                    check_roundtrip!(OpenMontageResourceProfile, $key, $value)
+                }
+                "OpenMontageRetryPolicy" => check_roundtrip!(OpenMontageRetryPolicy, $key, $value),
+                "OpenMontageToolContract" => {
+                    check_roundtrip!(OpenMontageToolContract, $key, $value)
+                }
+                "OpenMontageToolInvocation" => {
+                    check_roundtrip!(OpenMontageToolInvocation, $key, $value)
+                }
+                "OpenMontageToolResult" => check_roundtrip!(OpenMontageToolResult, $key, $value),
+                "OpenMontagePipelineSubStage" => {
+                    check_roundtrip!(OpenMontagePipelineSubStage, $key, $value)
+                }
+                "OpenMontagePipelineStage" => {
+                    check_roundtrip!(OpenMontagePipelineStage, $key, $value)
+                }
+                "OpenMontagePipelineOrchestration" => {
+                    check_roundtrip!(OpenMontagePipelineOrchestration, $key, $value)
+                }
+                "OpenMontageExtensionPermissions" => {
+                    check_roundtrip!(OpenMontageExtensionPermissions, $key, $value)
+                }
+                "OpenMontageReferenceInputConfig" => {
+                    check_roundtrip!(OpenMontageReferenceInputConfig, $key, $value)
+                }
+                "OpenMontagePipelineManifest" => {
+                    check_roundtrip!(OpenMontagePipelineManifest, $key, $value)
+                }
+                "OpenMontageArtifactPayload" => {
+                    check_roundtrip!(OpenMontageArtifactPayload, $key, $value)
+                }
+                "OpenMontageCheckpoint" => check_roundtrip!(OpenMontageCheckpoint, $key, $value),
+                "OpenMontageRuntimeAvailability" => {
+                    check_roundtrip!(OpenMontageRuntimeAvailability, $key, $value)
+                }
+                "OpenMontageCapabilitySummary" => {
+                    check_roundtrip!(OpenMontageCapabilitySummary, $key, $value)
+                }
+                "OpenMontageSetupOffer" => check_roundtrip!(OpenMontageSetupOffer, $key, $value),
+                "OpenMontagePreflightSnapshot" => {
+                    check_roundtrip!(OpenMontagePreflightSnapshot, $key, $value)
+                }
+                "OpenMontageProfessionalVideoRequest" => {
+                    check_roundtrip!(OpenMontageProfessionalVideoRequest, $key, $value)
+                }
+                "OpenMontageError" => check_roundtrip!(OpenMontageError, $key, $value),
+                "OpenMontageSubmitResponse" => {
+                    check_roundtrip!(OpenMontageSubmitResponse, $key, $value)
+                }
+                "OpenMontageArtifact" => check_roundtrip!(OpenMontageArtifact, $key, $value),
+                "OpenMontageStageCheckpoint" => {
+                    check_roundtrip!(OpenMontageStageCheckpoint, $key, $value)
+                }
+                "OpenMontageDecision" => check_roundtrip!(OpenMontageDecision, $key, $value),
+                "OpenMontageApprovalRequest" => {
+                    check_roundtrip!(OpenMontageApprovalRequest, $key, $value)
+                }
+                "OpenMontageApprovalDecision" => {
+                    check_roundtrip!(OpenMontageApprovalDecision, $key, $value)
+                }
+                "OpenMontageJobSnapshot" => check_roundtrip!(OpenMontageJobSnapshot, $key, $value),
+                "OpenMontageJobEvent" => check_roundtrip!(OpenMontageJobEvent, $key, $value),
+                "OpenMontageCallbackAck" => check_roundtrip!(OpenMontageCallbackAck, $key, $value),
+                other => panic!(
+                    "golden entry {} maps to unhandled type {:?}; add a dispatch arm \
+                     (the test must cover every golden vector, not a subset)",
+                    $key, other
+                ),
+            }
+        };
+    }
+
+    let mut n_enum = 0usize;
+    let mut n_msg = 0usize;
+
+    for (key, value) in &golden {
+        if key == ENUM_CARRIERS_KEY {
+            continue;
+        }
+        if key.starts_with("Enum_") {
+            // Enum carrier: resolve the carrier message type from metadata.
+            let carrier = carriers
+                .get(key)
+                .and_then(|v| v.as_str())
+                .unwrap_or_else(|| panic!("no __enum_carriers__ entry for {key}"));
+            dispatch!(carrier, key.as_str(), value);
+            n_enum += 1;
+        } else {
+            dispatch!(key.as_str(), key.as_str(), value);
+            n_msg += 1;
+        }
+    }
+
+    // 6 enum carriers + 32 messages = 38 vectors. Asserting the counts ensures
+    // the golden wasn't truncated and that we actually exercised every entry.
+    assert_eq!(
+        n_enum, 6,
+        "expected 6 enum-carrier golden vectors, exercised {n_enum}"
+    );
+    assert_eq!(
+        n_msg, 32,
+        "expected 32 message golden vectors, exercised {n_msg}"
+    );
+}
