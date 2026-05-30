@@ -180,3 +180,78 @@ Character-animation artifacts (`character_design`, `rig_plan`, `pose_library`,
 `action_timeline`, and `character_qa_report`) are covered by the same
 `OpenMontageArtifactPayload` mechanism.
 
+## Cross-Language Codec Behavior (intentional, tested divergences)
+
+The Rust and Python codecs are deliberately NOT byte-identical in two
+edge-case behaviors. Both behaviors are intentional and locked down by tests
+(`generated/rust/tests/openmontage_contract.rs` and
+`generated/python/test_openmontage_golden_vectors.py`). They are recorded here
+so future codec edits do not "accidentally fix" one side into the other.
+
+### Unknown enum tokens: Rust rejects, Python coerces (R-PROTO-04)
+
+An OpenMontage enum has two codec layers, and they behave differently on an
+**unknown** wire token (one not in the declared variant set):
+
+| Layer | Rust | Python |
+| --- | --- | --- |
+| Bare enum codec | `Enum::from_json_str("bogus") == None` (strict; caller decides) | `Enum.from_json("bogus") == Enum.UNSPECIFIED` (coerces) |
+| Message layer (e.g. `OpenMontageJobEvent.status` / `.event_type`) | `serde_json::from_str::<…>(…)` returns `Err` whose message contains `"unknown variant"` — the whole message is **rejected** | `OpenMontageJobEvent.from_json(…)` returns a struct with that enum field = `UNSPECIFIED`; **no error** |
+
+Rationale: the Rust service is the strict contract-handoff boundary — a peer
+sending an unrecognized/forward-version `status` or `event_type` is rejected
+loudly rather than silently downgraded to `UNSPECIFIED` (which could mask a
+protocol-version mismatch). The Python codec is a tolerant forward-compatible
+reader and coerces unknown tokens to `UNSPECIFIED`. This is a tested decision,
+not an oversight; do not make the Rust message layer coerce, and do not make
+the Python message layer raise, without revisiting this note and its tests.
+
+### uint64 is emitted as a bare JSON number — JS/TS `Number` precision hazard (R-PROTO-07)
+
+The OpenMontage `uint64` fields — `sequence` (`OpenMontageStageCheckpoint`,
+`OpenMontageDecision`, `OpenMontageJobEvent`), `bytes` (`OpenMontageArtifact`,
+…), and `seed` (`OpenMontageToolResult`, …) — are serialized as a **bare JSON
+number** on both languages (Rust `serde_json` default for `u64`; Python emits
+the `int` directly). They are **not** quoted strings:
+
+```json
+{"sequence": 18446744073709551615}   // u64::MAX, as a JSON number
+```
+
+| Consumer | Reads `uint64 > 2^53` losslessly? |
+| --- | --- |
+| Rust (`u64`) | yes — exact |
+| Python (`int`, arbitrary precision) | yes — exact |
+| JavaScript / TypeScript (`Number` = IEEE-754 double) | **NO** — values above `2^53-1` silently lose precision |
+
+Rust↔Python parity therefore holds (both read the full 64-bit value), and the
+fields round-trip losslessly within each language. **The hazard is for a
+third consumer that parses JSON numbers into an IEEE-754 double** — most
+notably a JS/TS client using the built-in `JSON.parse` → `Number`. For example
+`2^53 + 1` (`9007199254740993`) round-trips through a double as
+`9007199254740992`, dropping the `+1`. A JS/TS consumer that must handle
+`uint64` values above `2^53` should parse those fields with a BigInt-aware JSON
+reader (or the protocol should switch them to string encoding).
+
+This is a **wire-contract property, flagged as a cross-language finding** — it
+is NOT a defect in the Rust or Python codec (both are correct and lossless), so
+no production code is changed for it. The number wire form and the 2^53
+precision boundary are locked down by
+`numeric_uint64_emits_as_json_number_and_roundtrips_losslessly` (Rust) and
+`test_numeric_uint64_emits_as_json_number_and_roundtrips_losslessly` (Python),
+which assert the bare-number wire form, lossless in-language round-trip, and the
+`as f64` / `float()` precision loss at `2^53 + 1`.
+
+### Optional fields: omit vs explicit `null` are equivalent (R-PROTO-05)
+
+An OpenMontage `optional` field may appear on the wire as an **omitted key** or
+as an explicit `"field": null`. Both forms deserialize to the **same** value
+(the field absent / `None`) on both languages, and both round-trip
+consistently. On serialization, an absent optional is OMITTED from the wire
+form on both sides (Rust via prost's skip-`None`-`Option` behavior; Python via
+`_omit_none`, which uses a presence test — `value is not None` — not a
+truthiness test, per the B19 fix). The omit-vs-null distinction is therefore a
+cosmetic inbound wire-form difference only; both sides read both forms and emit
+the canonical omitted form. Unknown extra keys (forward-compat: a field a newer
+peer added) are ignored — not rejected — on both languages.
+

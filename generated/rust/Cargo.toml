@@ -14,3 +14,10 @@ chrono = { version = "0.4", features = ["serde"] }
 
 [build-dependencies]
 prost-build = "0.13"
+
+[dev-dependencies]
+# T10-3 (R-PROTO-03): property-based round-trip for the core OpenMontage
+# messages. `default-features = false` drops proptest's fork/timeout machinery
+# (which pulls rusty-fork + a heavier dep tree) — the round-trip properties are
+# pure and in-process, so the std feature set is all that's needed.
+proptest = { version = "1", default-features = false, features = ["std"] }

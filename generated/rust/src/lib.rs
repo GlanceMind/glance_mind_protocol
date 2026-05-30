@@ -3,6 +3,17 @@
 //! This crate provides protocol definitions for:
 //! - Queue messages (Scheduler <-> Agent)
 //! - REST API (API <-> Executor)
+//!
+//! ## `f64` JSON codec caveat
+//!
+//! Prefer the serde_json **Value** codec (`to_value` / `from_value`) for
+//! round-tripping these types: it preserves every `f64` field bit-exactly. The
+//! **string** codec (`to_string` / `from_str`) is NOT bit-exact for `f64` —
+//! serde_json's default text->f64 parser is not correctly-rounded, so some
+//! finite doubles reparse one ULP low (e.g. `5.2641373817321195e+191`). The
+//! emitted text is correct (`str::parse::<f64>` reparses it exactly); only
+//! serde_json's parser rounds short. This is an upstream serde_json limitation
+//! (1.0.x); enable its `float_roundtrip` feature to make the string path exact.
 
 #![allow(clippy::derive_partial_eq_without_eq)]
 
