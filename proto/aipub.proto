@@ -668,6 +668,24 @@ message AccountGroomingTaskContent {
   optional string profile_url = 9 [ json_name = "profile_url" ];
 }
 
+// page_manage operating plan — a single AI-produced plan for ONE managed
+// page. The scheduler expands it at ENQUEUE time into standard child tasks
+// (the profile -> one account_grooming task; each post -> one publish task
+// with its own schedule), so the executor/automation_lib pipeline runs
+// unchanged. NOTE: the Python mirror also carries an application-level
+// expand() helper (logic, not wire data) for the executor's back-compat
+// inline path; the wire payload is just these three fields.
+message PageManagePlanContent {
+  // Target managed Page (…/profile.php?id=<id>); empty → the logged-in /me.
+  // Propagated into every expanded child.
+  optional string profile_url = 1 [ json_name = "profile_url" ];
+  // Profile decoration → expands to one account_grooming/profile child.
+  optional AccountGroomingTaskContent profile = 2;
+  // A calendar of posts → one batch_text/post child each, carrying its own
+  // PublishSchedule for timed fan-out.
+  repeated UnifiedPublishContent posts = 3;
+}
+
 // Executor task status update (Executor -> API)
 message ExecutorTaskStatusUpdate {
   int32 task_id = 1 [ json_name = "task_id" ];

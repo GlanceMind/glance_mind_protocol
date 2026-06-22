@@ -19,7 +19,16 @@ Run:
 
 from __future__ import annotations
 
-from glance_mind import AccountGroomingTaskContent, AiTaskType, LinkItem, PlanType
+from glance_mind import (
+    AccountGroomingTaskContent,
+    AiTaskType,
+    ContentType,
+    LinkItem,
+    PageManagePlanContent,
+    PlanType,
+    PublishSchedule,
+    UnifiedPublishContent,
+)
 
 
 class TestPlanTypeConstant:
@@ -125,3 +134,51 @@ class TestGroomingRichFields:
         assert r.links == []
         assert r.about_fields == {}
         assert r.profile_url is None
+
+
+class TestPageManagePlanContent:
+    """The legacy inline page_manage plan shape (profile + posts). Carries an
+    application-level expand() helper on the Python mirror (not wire data)."""
+
+    _PAGE = "https://www.facebook.com/profile.php?id=100082341853837"
+
+    def _plan(self):
+        return PageManagePlanContent(
+            profile_url=self._PAGE,
+            profile=AccountGroomingTaskContent(generated_bio="hi", cover_url="c.png"),
+            posts=[
+                UnifiedPublishContent(
+                    version=2, platform="facebook", content_type="post",
+                    plan_type="batch_text",
+                    schedule=PublishSchedule(scheduled_at="2026-06-23T13:00:00+08:00"),
+                )
+            ],
+        )
+
+    def test_roundtrip(self):
+        r = PageManagePlanContent.from_dict(self._plan().to_dict())
+        assert r.profile_url == self._PAGE
+        assert r.profile.cover_url == "c.png"
+        assert len(r.posts) == 1
+
+    def test_expand_profile_and_post_with_targeting_and_schedule(self):
+        children = self._plan().expand()
+        assert len(children) == 2
+
+        prof = children[0]
+        assert prof["plan_type"] == PlanType.ACCOUNT_GROOMING
+        assert prof["content_type"] == ContentType.PROFILE
+        assert prof["content"]["profile_url"].endswith("100082341853837")
+        assert prof["scheduled_at"] is None
+
+        post = children[1]
+        assert post["plan_type"] == "batch_text"
+        assert post["content_type"] == "post"
+        assert post["scheduled_at"] == "2026-06-23T13:00:00+08:00"
+        # profile_url propagated into the post's platform_extras for targeting.
+        assert post["content"]["platform_extras"]["profile_url"].endswith(
+            "100082341853837"
+        )
+
+    def test_expand_empty_plan_is_empty(self):
+        assert PageManagePlanContent().expand() == []

@@ -1375,6 +1375,94 @@ class AccountGroomingTaskContent:
 
 
 # ============================================================
+# Page-manage operating plan (legacy inline shape)
+# Source of truth: aipub.proto PageManagePlanContent.
+# ============================================================
+
+@dataclass
+class PageManagePlanContent:
+    """A single AI-produced operating plan for ONE managed page, stored in
+    gm_aipub_tasks.content for plan_type = "page_manage".
+
+    The scheduler/expander turns it into standard child tasks:
+      * the ``profile`` decoration  -> one account_grooming task
+      * each entry in ``posts``     -> one publish task (with its schedule)
+    so the rest of the pipeline (dispatch -> executor -> automation_lib)
+    runs unchanged. ``profile_url`` is the target Page; it is injected into
+    each child so every action lands on the right page.
+
+    NOTE: ``expand()`` is application logic (not wire data); it lives on this
+    hand-maintained mirror, NOT in the proto message. The Rust scheduler does
+    the equivalent expansion at enqueue time (build_page_manage_children), so
+    in the scheduler-driven path this inline type is not put on the wire — it
+    is retained for the executor's back-compat inline path.
+    """
+    profile_url: Optional[str] = None
+    profile: Optional["AccountGroomingTaskContent"] = None
+    posts: "List[UnifiedPublishContent]" = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {"posts": [p.to_dict() for p in self.posts]}
+        if self.profile_url is not None:
+            d["profile_url"] = self.profile_url
+        if self.profile is not None:
+            d["profile"] = self.profile.to_dict()
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PageManagePlanContent":
+        prof = data.get("profile")
+        return cls(
+            profile_url=data.get("profile_url"),
+            profile=(AccountGroomingTaskContent.from_dict(prof)
+                     if isinstance(prof, dict) else None),
+            posts=[UnifiedPublishContent.from_dict(p)
+                   for p in (data.get("posts") or [])],
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "PageManagePlanContent":
+        return cls.from_dict(json.loads(json_str))
+
+    def expand(self) -> List[Dict[str, Any]]:
+        """Expand into child-task specs (dicts), ready for the scheduler to
+        enqueue as standard aipub tasks. Each spec carries plan_type,
+        content_type, content (JSON), and scheduled_at. ``profile_url`` is
+        propagated into every child."""
+        children: List[Dict[str, Any]] = []
+
+        if self.profile is not None:
+            prof = self.profile.to_dict()
+            if self.profile_url and not prof.get("profile_url"):
+                prof["profile_url"] = self.profile_url
+            children.append({
+                "plan_type": PlanType.ACCOUNT_GROOMING,
+                "content_type": ContentType.PROFILE,
+                "content": prof,
+                "scheduled_at": None,
+            })
+
+        for post in self.posts:
+            pc = post.to_dict()
+            if self.profile_url:
+                # publisher reads the target from platform_extras.profile_url
+                extras = dict(pc.get("platform_extras") or {})
+                extras.setdefault("profile_url", self.profile_url)
+                pc["platform_extras"] = extras
+            children.append({
+                "plan_type": post.plan_type or PlanType.BATCH_TEXT,
+                "content_type": post.content_type or ContentType.POST,
+                "content": pc,
+                "scheduled_at": (post.schedule.scheduled_at
+                                 if post.schedule else None),
+            })
+        return children
+
+
+# ============================================================
 # Reddit Publish Content (Phase 4 Round 3 Task 4)
 # Source of truth: aipub.proto RedditPublishContent (message at line 567).
 # Used by plan_type = reddit_text / reddit_image / reddit_link.
