@@ -19,7 +19,7 @@ Run:
 
 from __future__ import annotations
 
-from glance_mind import AiTaskType, PlanType
+from glance_mind import AccountGroomingTaskContent, AiTaskType, LinkItem, PlanType
 
 
 class TestPlanTypeConstant:
@@ -79,3 +79,49 @@ class TestNoExecutorTaskRouting:
             "page_manage must not introduce an executor task content type — "
             "it expands into existing child task types at enqueue time."
         )
+
+
+class TestGroomingRichFields:
+    """AccountGroomingTaskContent gained page-decoration fields (cover photo,
+    links, About fields, profile_url) so a page_manage profile child can fully
+    decorate a managed Page. All optional ⇒ partial updates."""
+
+    def test_rich_fields_roundtrip(self):
+        g = AccountGroomingTaskContent(
+            generated_bio="hi",
+            cover_url="c.png",
+            cover_prompt="sunset",
+            profile_url="https://www.facebook.com/profile.php?id=100082341853837",
+            links=[LinkItem(url="https://glancemind.com", label="Site")],
+            about_fields={"work": "10y retail"},
+        )
+        d = g.to_dict()
+        assert d["cover_url"] == "c.png"
+        assert d["cover_prompt"] == "sunset"
+        assert d["profile_url"].endswith("100082341853837")
+        assert d["links"][0]["url"] == "https://glancemind.com"
+        assert d["about_fields"]["work"] == "10y retail"
+
+        r = AccountGroomingTaskContent.from_dict(d)
+        assert r.profile_url == g.profile_url
+        assert r.cover_url == "c.png"
+        assert r.links[0].url == "https://glancemind.com"
+        assert r.about_fields == {"work": "10y retail"}
+
+    def test_partial_update_elides_unset_fields(self):
+        # Only bio set ⇒ no cover/links/about keys leak into the wire dict.
+        d = AccountGroomingTaskContent(generated_bio="x").to_dict()
+        assert d == {"generated_name": "", "generated_bio": "x"}
+
+    def test_backward_compatible_with_legacy_4_field_payload(self):
+        # A pre-extension payload (name/avatar/bio only) still parses, with the
+        # new fields defaulting empty.
+        r = AccountGroomingTaskContent.from_dict(
+            {"generated_name": "n", "avatar_url": "a.png", "generated_bio": "b"}
+        )
+        assert r.generated_name == "n"
+        assert r.avatar_url == "a.png"
+        assert r.cover_url is None
+        assert r.links == []
+        assert r.about_fields == {}
+        assert r.profile_url is None

@@ -1325,24 +1325,40 @@ class UploadTaskMessage:
 @dataclass
 class AccountGroomingTaskContent:
     """
-    Account grooming task content - stored in gm_aipub_tasks.content
-    for plan_type = "account_grooming"
+    Account grooming / page-profile content - stored in gm_aipub_tasks.content
+    for plan_type = "account_grooming" (content_type = "profile").
+
+    Originally just name/avatar/bio; extended so AI can fully decorate a
+    page: cover photo, website/social links, and free-text About fields.
+    Every field is optional -> partial updates. ``profile_url`` targets a
+    specific managed Page (``.../profile.php?id=<id>``); None -> the logged-in
+    profile (``/me``). The executor maps each field onto automation_lib
+    (edit_bio / set_profile_photo / set_cover_photo / edit_links /
+    edit_about_text_field). Mirror of proto AccountGroomingTaskContent.
     """
     generated_name: str = ""
     avatar_url: Optional[str] = None
     avatar_prompt: Optional[str] = None
-    generated_bio: Optional[str] = None  # Bio text (max ~80 chars)
-    
+    generated_bio: Optional[str] = None       # Bio text (FB cap: 255 chars)
+    cover_url: Optional[str] = None            # cover photo (image url/path)
+    cover_prompt: Optional[str] = None
+    links: "List[LinkItem]" = field(default_factory=list)       # websites/social
+    about_fields: Dict[str, str] = field(default_factory=dict)  # work/education/…
+    profile_url: Optional[str] = None          # target Page; None -> /me
+
     def to_dict(self) -> Dict[str, Any]:
-        result = {"generated_name": self.generated_name}
-        if self.avatar_url is not None:
-            result["avatar_url"] = self.avatar_url
-        if self.avatar_prompt is not None:
-            result["avatar_prompt"] = self.avatar_prompt
-        if self.generated_bio is not None:
-            result["generated_bio"] = self.generated_bio
+        result: Dict[str, Any] = {"generated_name": self.generated_name}
+        for k in ("avatar_url", "avatar_prompt", "generated_bio",
+                  "cover_url", "cover_prompt", "profile_url"):
+            v = getattr(self, k)
+            if v is not None:
+                result[k] = v
+        if self.links:
+            result["links"] = [l.to_dict() for l in self.links]
+        if self.about_fields:
+            result["about_fields"] = dict(self.about_fields)
         return result
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AccountGroomingTaskContent":
         return cls(
@@ -1350,6 +1366,11 @@ class AccountGroomingTaskContent:
             avatar_url=data.get("avatar_url"),
             avatar_prompt=data.get("avatar_prompt"),
             generated_bio=data.get("generated_bio"),
+            cover_url=data.get("cover_url"),
+            cover_prompt=data.get("cover_prompt"),
+            links=[LinkItem.from_dict(x) for x in (data.get("links") or [])],
+            about_fields=dict(data.get("about_fields") or {}),
+            profile_url=data.get("profile_url"),
         )
 
 

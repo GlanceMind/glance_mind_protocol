@@ -656,7 +656,16 @@ message AccountGroomingTaskContent {
   string generated_name = 1 [ json_name = "generated_name" ];
   optional string avatar_url = 2 [ json_name = "avatar_url" ];
   optional string avatar_prompt = 3 [ json_name = "avatar_prompt" ];
-  optional string generated_bio = 4 [ json_name = "generated_bio" ];  // Bio text (max ~80 chars)
+  optional string generated_bio = 4 [ json_name = "generated_bio" ];  // Bio text (FB cap: 255 chars)
+  // Page-profile decoration (all optional → partial updates). Used when an
+  // account_grooming task — including a page_manage profile child — fully
+  // decorates a managed Page via automation_lib.
+  optional string cover_url = 5 [ json_name = "cover_url" ];      // cover photo url/path
+  optional string cover_prompt = 6 [ json_name = "cover_prompt" ];
+  repeated LinkItem links = 7;                                    // website / social links
+  map<string, string> about_fields = 8 [ json_name = "about_fields" ];  // work/education/…
+  // Target managed Page (…/profile.php?id=<id>); empty → the logged-in /me.
+  optional string profile_url = 9 [ json_name = "profile_url" ];
 }
 
 // Executor task status update (Executor -> API)
