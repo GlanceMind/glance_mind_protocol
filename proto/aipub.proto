@@ -41,7 +41,8 @@ enum AiPubProtocolVersion {
 // PlanType - gm_aipub_plans.plan_type
 // Determines the processing strategy for a publish plan.
 // DB CHECK: ('batch_text', 'single_video', 'account_grooming',
-//            'reddit_text', 'reddit_image', 'reddit_link')
+//            'reddit_text', 'reddit_image', 'reddit_link',
+//            'direct_publish', 'page_manage')
 enum PlanType {
   PLAN_TYPE_UNSPECIFIED = 0;
   PLAN_TYPE_BATCH_TEXT = 1;        // "batch_text" - text posts for group
@@ -50,6 +51,16 @@ enum PlanType {
   PLAN_TYPE_REDDIT_TEXT = 4;       // "reddit_text" - Reddit text post
   PLAN_TYPE_REDDIT_IMAGE = 5;      // "reddit_image" - Reddit image post
   PLAN_TYPE_REDDIT_LINK = 6;       // "reddit_link" - Reddit link post
+  // NOTE: "direct_publish" exists downstream (glance_mind_rust entity + DB
+  // CHECK) but was never proto-ized; it is carried as a plain string.
+  PLAN_TYPE_PAGE_MANAGE = 7;       // "page_manage" - AI-orchestrated page
+                                   // operating plan: the scheduler expands one
+                                   // page_manage plan into existing child task
+                                   // types (account_grooming/profile +
+                                   // batch_text/post), each scheduled
+                                   // independently. The executor never sees a
+                                   // page_manage task — only the standard
+                                   // children.
 }
 
 // ContentType - gm_aipub_plans.content_type
@@ -98,7 +109,7 @@ enum PublishTaskStatus {
 // AiTaskType - gm_aipub_ai_tasks.task_type
 // Type of AI generation task.
 // DB CHECK: ('video_gen','content_gen','image_gen','combined',
-//            'account_grooming')
+//            'account_grooming','page_manage')
 // Note: 'image_gen' covers all image providers (Flux Kontext Pro/Max,
 // SeeDream 4.0/4.5, gpt-4o-image). The concrete provider is selected
 // at runtime by ImageGenerationSpec.model + provider_hint.
@@ -110,6 +121,10 @@ enum AiTaskType {
   AI_TASK_TYPE_COMBINED = 4;           // "combined" (content + video)
   AI_TASK_TYPE_ACCOUNT_GROOMING = 5;   // "account_grooming" (name + avatar)
   AI_TASK_TYPE_SEEDANCE_VIDEO = 6;    // "seedance_video" (Seedance 2.0 video gen)
+  AI_TASK_TYPE_PAGE_MANAGE = 7;        // "page_manage" - generate a page
+                                       // operating plan (profile + a calendar
+                                       // of posts); the scheduler expands the
+                                       // result into child publish tasks.
 }
 
 // AiTaskStatus - gm_aipub_ai_tasks.status
@@ -641,7 +656,34 @@ message AccountGroomingTaskContent {
   string generated_name = 1 [ json_name = "generated_name" ];
   optional string avatar_url = 2 [ json_name = "avatar_url" ];
   optional string avatar_prompt = 3 [ json_name = "avatar_prompt" ];
-  optional string generated_bio = 4 [ json_name = "generated_bio" ];  // Bio text (max ~80 chars)
+  optional string generated_bio = 4 [ json_name = "generated_bio" ];  // Bio text (FB cap: 255 chars)
+  // Page-profile decoration (all optional → partial updates). Used when an
+  // account_grooming task — including a page_manage profile child — fully
+  // decorates a managed Page via automation_lib.
+  optional string cover_url = 5 [ json_name = "cover_url" ];      // cover photo url/path
+  optional string cover_prompt = 6 [ json_name = "cover_prompt" ];
+  repeated LinkItem links = 7;                                    // website / social links
+  map<string, string> about_fields = 8 [ json_name = "about_fields" ];  // work/education/…
+  // Target managed Page (…/profile.php?id=<id>); empty → the logged-in /me.
+  optional string profile_url = 9 [ json_name = "profile_url" ];
+}
+
+// page_manage operating plan — a single AI-produced plan for ONE managed
+// page. The scheduler expands it at ENQUEUE time into standard child tasks
+// (the profile -> one account_grooming task; each post -> one publish task
+// with its own schedule), so the executor/automation_lib pipeline runs
+// unchanged. NOTE: the Python mirror also carries an application-level
+// expand() helper (logic, not wire data) for the executor's back-compat
+// inline path; the wire payload is just these three fields.
+message PageManagePlanContent {
+  // Target managed Page (…/profile.php?id=<id>); empty → the logged-in /me.
+  // Propagated into every expanded child.
+  optional string profile_url = 1 [ json_name = "profile_url" ];
+  // Profile decoration → expands to one account_grooming/profile child.
+  optional AccountGroomingTaskContent profile = 2;
+  // A calendar of posts → one batch_text/post child each, carrying its own
+  // PublishSchedule for timed fan-out.
+  repeated UnifiedPublishContent posts = 3;
 }
 
 // Executor task status update (Executor -> API)

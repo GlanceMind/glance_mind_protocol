@@ -575,7 +575,7 @@ class PlanType:
 
     DB CHECK: ('batch_text', 'single_video', 'account_grooming',
                'reddit_text', 'reddit_image', 'reddit_link',
-               'direct_publish')
+               'direct_publish', 'page_manage')
     Source of truth: aipub.proto PlanType (Phase 4 Round 3 Task 4).
     """
     BATCH_TEXT = "batch_text"
@@ -584,6 +584,11 @@ class PlanType:
     REDDIT_TEXT = "reddit_text"
     REDDIT_IMAGE = "reddit_image"
     REDDIT_LINK = "reddit_link"
+    # AI-orchestrated page operating plan. The scheduler expands one
+    # page_manage plan into existing child task types (account_grooming +
+    # batch_text), each scheduled independently; the executor only ever sees
+    # the standard children, never a page_manage task.
+    PAGE_MANAGE = "page_manage"
     ALL = [
         BATCH_TEXT,
         SINGLE_VIDEO,
@@ -591,6 +596,7 @@ class PlanType:
         REDDIT_TEXT,
         REDDIT_IMAGE,
         REDDIT_LINK,
+        PAGE_MANAGE,
     ]
     REDDIT_PLAN_TYPES = (REDDIT_TEXT, REDDIT_IMAGE, REDDIT_LINK)
 
@@ -650,14 +656,18 @@ class AiTaskType:
     """
     AI task type - gm_aipub_ai_tasks.task_type
     Determines scheduler processing logic.
-    DB CHECK: ('video_gen','content_gen','image_gen','combined','account_grooming')
+    DB CHECK: ('video_gen','content_gen','image_gen','combined',
+               'account_grooming','page_manage')
     """
     CONTENT_GEN = "content_gen"
     VIDEO_GEN = "video_gen"
     IMAGE_GEN = "image_gen"
     COMBINED = "combined"
     ACCOUNT_GROOMING = "account_grooming"
-    ALL = [CONTENT_GEN, VIDEO_GEN, IMAGE_GEN, COMBINED, ACCOUNT_GROOMING]
+    # Generate a page operating plan (profile + a calendar of posts); the
+    # scheduler expands the AI result into child publish tasks.
+    PAGE_MANAGE = "page_manage"
+    ALL = [CONTENT_GEN, VIDEO_GEN, IMAGE_GEN, COMBINED, ACCOUNT_GROOMING, PAGE_MANAGE]
 
 # Backward-compatible alias
 AiTaskTypeEnum = AiTaskType
@@ -1315,24 +1325,40 @@ class UploadTaskMessage:
 @dataclass
 class AccountGroomingTaskContent:
     """
-    Account grooming task content - stored in gm_aipub_tasks.content
-    for plan_type = "account_grooming"
+    Account grooming / page-profile content - stored in gm_aipub_tasks.content
+    for plan_type = "account_grooming" (content_type = "profile").
+
+    Originally just name/avatar/bio; extended so AI can fully decorate a
+    page: cover photo, website/social links, and free-text About fields.
+    Every field is optional -> partial updates. ``profile_url`` targets a
+    specific managed Page (``.../profile.php?id=<id>``); None -> the logged-in
+    profile (``/me``). The executor maps each field onto automation_lib
+    (edit_bio / set_profile_photo / set_cover_photo / edit_links /
+    edit_about_text_field). Mirror of proto AccountGroomingTaskContent.
     """
     generated_name: str = ""
     avatar_url: Optional[str] = None
     avatar_prompt: Optional[str] = None
-    generated_bio: Optional[str] = None  # Bio text (max ~80 chars)
-    
+    generated_bio: Optional[str] = None       # Bio text (FB cap: 255 chars)
+    cover_url: Optional[str] = None            # cover photo (image url/path)
+    cover_prompt: Optional[str] = None
+    links: "List[LinkItem]" = field(default_factory=list)       # websites/social
+    about_fields: Dict[str, str] = field(default_factory=dict)  # work/education/…
+    profile_url: Optional[str] = None          # target Page; None -> /me
+
     def to_dict(self) -> Dict[str, Any]:
-        result = {"generated_name": self.generated_name}
-        if self.avatar_url is not None:
-            result["avatar_url"] = self.avatar_url
-        if self.avatar_prompt is not None:
-            result["avatar_prompt"] = self.avatar_prompt
-        if self.generated_bio is not None:
-            result["generated_bio"] = self.generated_bio
+        result: Dict[str, Any] = {"generated_name": self.generated_name}
+        for k in ("avatar_url", "avatar_prompt", "generated_bio",
+                  "cover_url", "cover_prompt", "profile_url"):
+            v = getattr(self, k)
+            if v is not None:
+                result[k] = v
+        if self.links:
+            result["links"] = [l.to_dict() for l in self.links]
+        if self.about_fields:
+            result["about_fields"] = dict(self.about_fields)
         return result
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AccountGroomingTaskContent":
         return cls(
@@ -1340,7 +1366,100 @@ class AccountGroomingTaskContent:
             avatar_url=data.get("avatar_url"),
             avatar_prompt=data.get("avatar_prompt"),
             generated_bio=data.get("generated_bio"),
+            cover_url=data.get("cover_url"),
+            cover_prompt=data.get("cover_prompt"),
+            links=[LinkItem.from_dict(x) for x in (data.get("links") or [])],
+            about_fields=dict(data.get("about_fields") or {}),
+            profile_url=data.get("profile_url"),
         )
+
+
+# ============================================================
+# Page-manage operating plan (legacy inline shape)
+# Source of truth: aipub.proto PageManagePlanContent.
+# ============================================================
+
+@dataclass
+class PageManagePlanContent:
+    """A single AI-produced operating plan for ONE managed page, stored in
+    gm_aipub_tasks.content for plan_type = "page_manage".
+
+    The scheduler/expander turns it into standard child tasks:
+      * the ``profile`` decoration  -> one account_grooming task
+      * each entry in ``posts``     -> one publish task (with its schedule)
+    so the rest of the pipeline (dispatch -> executor -> automation_lib)
+    runs unchanged. ``profile_url`` is the target Page; it is injected into
+    each child so every action lands on the right page.
+
+    NOTE: ``expand()`` is application logic (not wire data); it lives on this
+    hand-maintained mirror, NOT in the proto message. The Rust scheduler does
+    the equivalent expansion at enqueue time (build_page_manage_children), so
+    in the scheduler-driven path this inline type is not put on the wire — it
+    is retained for the executor's back-compat inline path.
+    """
+    profile_url: Optional[str] = None
+    profile: Optional["AccountGroomingTaskContent"] = None
+    posts: "List[UnifiedPublishContent]" = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {"posts": [p.to_dict() for p in self.posts]}
+        if self.profile_url is not None:
+            d["profile_url"] = self.profile_url
+        if self.profile is not None:
+            d["profile"] = self.profile.to_dict()
+        return d
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PageManagePlanContent":
+        prof = data.get("profile")
+        return cls(
+            profile_url=data.get("profile_url"),
+            profile=(AccountGroomingTaskContent.from_dict(prof)
+                     if isinstance(prof, dict) else None),
+            posts=[UnifiedPublishContent.from_dict(p)
+                   for p in (data.get("posts") or [])],
+        )
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "PageManagePlanContent":
+        return cls.from_dict(json.loads(json_str))
+
+    def expand(self) -> List[Dict[str, Any]]:
+        """Expand into child-task specs (dicts), ready for the scheduler to
+        enqueue as standard aipub tasks. Each spec carries plan_type,
+        content_type, content (JSON), and scheduled_at. ``profile_url`` is
+        propagated into every child."""
+        children: List[Dict[str, Any]] = []
+
+        if self.profile is not None:
+            prof = self.profile.to_dict()
+            if self.profile_url and not prof.get("profile_url"):
+                prof["profile_url"] = self.profile_url
+            children.append({
+                "plan_type": PlanType.ACCOUNT_GROOMING,
+                "content_type": ContentType.PROFILE,
+                "content": prof,
+                "scheduled_at": None,
+            })
+
+        for post in self.posts:
+            pc = post.to_dict()
+            if self.profile_url:
+                # publisher reads the target from platform_extras.profile_url
+                extras = dict(pc.get("platform_extras") or {})
+                extras.setdefault("profile_url", self.profile_url)
+                pc["platform_extras"] = extras
+            children.append({
+                "plan_type": post.plan_type or PlanType.BATCH_TEXT,
+                "content_type": post.content_type or ContentType.POST,
+                "content": pc,
+                "scheduled_at": (post.schedule.scheduled_at
+                                 if post.schedule else None),
+            })
+        return children
 
 
 # ============================================================
