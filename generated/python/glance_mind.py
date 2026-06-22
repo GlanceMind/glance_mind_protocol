@@ -575,7 +575,7 @@ class PlanType:
 
     DB CHECK: ('batch_text', 'single_video', 'account_grooming',
                'reddit_text', 'reddit_image', 'reddit_link',
-               'direct_publish')
+               'direct_publish', 'page_manage')
     Source of truth: aipub.proto PlanType (Phase 4 Round 3 Task 4).
     """
     BATCH_TEXT = "batch_text"
@@ -584,6 +584,11 @@ class PlanType:
     REDDIT_TEXT = "reddit_text"
     REDDIT_IMAGE = "reddit_image"
     REDDIT_LINK = "reddit_link"
+    # AI-orchestrated page operating plan. The scheduler expands one
+    # page_manage plan into existing child task types (account_grooming +
+    # batch_text), each scheduled independently; the executor only ever sees
+    # the standard children, never a page_manage task.
+    PAGE_MANAGE = "page_manage"
     ALL = [
         BATCH_TEXT,
         SINGLE_VIDEO,
@@ -591,6 +596,7 @@ class PlanType:
         REDDIT_TEXT,
         REDDIT_IMAGE,
         REDDIT_LINK,
+        PAGE_MANAGE,
     ]
     REDDIT_PLAN_TYPES = (REDDIT_TEXT, REDDIT_IMAGE, REDDIT_LINK)
 
@@ -650,14 +656,18 @@ class AiTaskType:
     """
     AI task type - gm_aipub_ai_tasks.task_type
     Determines scheduler processing logic.
-    DB CHECK: ('video_gen','content_gen','image_gen','combined','account_grooming')
+    DB CHECK: ('video_gen','content_gen','image_gen','combined',
+               'account_grooming','page_manage')
     """
     CONTENT_GEN = "content_gen"
     VIDEO_GEN = "video_gen"
     IMAGE_GEN = "image_gen"
     COMBINED = "combined"
     ACCOUNT_GROOMING = "account_grooming"
-    ALL = [CONTENT_GEN, VIDEO_GEN, IMAGE_GEN, COMBINED, ACCOUNT_GROOMING]
+    # Generate a page operating plan (profile + a calendar of posts); the
+    # scheduler expands the AI result into child publish tasks.
+    PAGE_MANAGE = "page_manage"
+    ALL = [CONTENT_GEN, VIDEO_GEN, IMAGE_GEN, COMBINED, ACCOUNT_GROOMING, PAGE_MANAGE]
 
 # Backward-compatible alias
 AiTaskTypeEnum = AiTaskType

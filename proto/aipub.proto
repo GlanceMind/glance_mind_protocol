@@ -41,7 +41,8 @@ enum AiPubProtocolVersion {
 // PlanType - gm_aipub_plans.plan_type
 // Determines the processing strategy for a publish plan.
 // DB CHECK: ('batch_text', 'single_video', 'account_grooming',
-//            'reddit_text', 'reddit_image', 'reddit_link')
+//            'reddit_text', 'reddit_image', 'reddit_link',
+//            'direct_publish', 'page_manage')
 enum PlanType {
   PLAN_TYPE_UNSPECIFIED = 0;
   PLAN_TYPE_BATCH_TEXT = 1;        // "batch_text" - text posts for group
@@ -50,6 +51,16 @@ enum PlanType {
   PLAN_TYPE_REDDIT_TEXT = 4;       // "reddit_text" - Reddit text post
   PLAN_TYPE_REDDIT_IMAGE = 5;      // "reddit_image" - Reddit image post
   PLAN_TYPE_REDDIT_LINK = 6;       // "reddit_link" - Reddit link post
+  // NOTE: "direct_publish" exists downstream (glance_mind_rust entity + DB
+  // CHECK) but was never proto-ized; it is carried as a plain string.
+  PLAN_TYPE_PAGE_MANAGE = 7;       // "page_manage" - AI-orchestrated page
+                                   // operating plan: the scheduler expands one
+                                   // page_manage plan into existing child task
+                                   // types (account_grooming/profile +
+                                   // batch_text/post), each scheduled
+                                   // independently. The executor never sees a
+                                   // page_manage task — only the standard
+                                   // children.
 }
 
 // ContentType - gm_aipub_plans.content_type
@@ -98,7 +109,7 @@ enum PublishTaskStatus {
 // AiTaskType - gm_aipub_ai_tasks.task_type
 // Type of AI generation task.
 // DB CHECK: ('video_gen','content_gen','image_gen','combined',
-//            'account_grooming')
+//            'account_grooming','page_manage')
 // Note: 'image_gen' covers all image providers (Flux Kontext Pro/Max,
 // SeeDream 4.0/4.5, gpt-4o-image). The concrete provider is selected
 // at runtime by ImageGenerationSpec.model + provider_hint.
@@ -110,6 +121,10 @@ enum AiTaskType {
   AI_TASK_TYPE_COMBINED = 4;           // "combined" (content + video)
   AI_TASK_TYPE_ACCOUNT_GROOMING = 5;   // "account_grooming" (name + avatar)
   AI_TASK_TYPE_SEEDANCE_VIDEO = 6;    // "seedance_video" (Seedance 2.0 video gen)
+  AI_TASK_TYPE_PAGE_MANAGE = 7;        // "page_manage" - generate a page
+                                       // operating plan (profile + a calendar
+                                       // of posts); the scheduler expands the
+                                       // result into child publish tasks.
 }
 
 // AiTaskStatus - gm_aipub_ai_tasks.status
